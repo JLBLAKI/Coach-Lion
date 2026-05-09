@@ -2,8 +2,8 @@
 // COACH LION v2 — APP.JS
 // ═══════════════════════════════════════════
 
-const SUPA_URL = 'YOUR_SUPABASE_URL';
-const SUPA_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPA_URL = 'https://ptuughawsrozmeymbxkp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dXVnaGF3c3Jvem1leW1ieGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyODIzMzMsImV4cCI6MjA5Mzg1ODMzM30.rN1VMPTq-f-mZrR8Q_LHe-seDnNBZGb-I5fQecJEZs8';
 const COACH_USERNAME = 'coach';
 
 const S = {
