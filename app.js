@@ -430,7 +430,7 @@ const App={
   async fetchExGif(ex){
     const mm={chest:'chest',back:'back',shoulders:'shoulders',biceps:'upper%20arms',triceps:'upper%20arms',legs:'upper%20legs',core:'waist'};
     try{
-      const res=await fetch(`https://exercisedb.p.rapidapi.com/exercises/bodyPart/${mm[ex.muscle]||ex.muscle}?limit=80`,{headers:{'X-RapidAPI-Key':'DEMO_KEY','X-RapidAPI-Host':'exercisedb.p.rapidapi.com'}});
+      const res=await fetch(`https://exercisedb.p.rapidapi.com/exercises/bodyPart/${mm[ex.muscle]||ex.muscle}?limit=80`,{headers:{'X-RapidAPI-Key':'fa7db717a2msh1eab804168a164dp1a67bdjsn186f173b7732','X-RapidAPI-Host':'exercisedb.p.rapidapi.com'}});
       if(res.ok){const data=await res.json();const q=ex.name.toLowerCase().split(' ')[0];const match=data.find(d=>d.name.toLowerCase().includes(q));if(match?.gifUrl)$('ex-media').innerHTML=`<img src="${match.gifUrl}" alt="${ex.name}" onerror="this.parentElement.innerHTML='<div class=ex-media-ph>${ex.emoji}</div>'">`;}
     }catch(e){}
   },
