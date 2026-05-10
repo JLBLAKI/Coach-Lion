@@ -101,21 +101,12 @@ function toast(msg){
 const App = {
 
   init(){
-    this.seedCoach();
     setTimeout(()=>{
       const sp=$('splash');sp.style.cssText='opacity:0;transition:opacity .5s;position:fixed;inset:0;z-index:9999;background:var(--black)';
       setTimeout(()=>{sp.style.display='none';this.checkSess();},500);
     },2900);
     this.buildMFilters();
     this.buildAchFilters();
-  },
-
-  seedCoach(){
-    const users=getUsers();
-    if(!users.find(u=>u.username==="coach")){
-      users.unshift({id:"coach-master-001",name:"Coach",username:"coach",password:"033534950",weight:null,height:null,age:null,days:null,goal:null,level:"elite",bmi:null,xp:9999,sessions:0,streak:0,lastSession:null,achievements:[],workoutHistory:[],records:{},coachMessages:[],totalVolume:0,created:new Date().toISOString()});
-      saveUsers(users);
-    }
   },
 
   checkSess(){
@@ -221,10 +212,10 @@ const App = {
   // ── SESSION ──
   startWorkout(){
     this.goTo('workout');
-    if(!S.sessActive){S.sessActive=true;S.sessStart=Date.now();S.sessTimer=setInterval(()=>this.tickSess(),1000);S.workLog=[];this.renderLog();this.reqWL();}
+    if(!S.sessActive){S.sessActive=true;S.sessStart=Date.now();$('sess-tog').textContent='⏸';S.sessTimer=setInterval(()=>this.tickSess(),1000);S.workLog=[];this.renderLog();this.reqWL();}
   },
-  tickSess(){if(!S.sessStart)return;const e=Date.now()-S.sessStart;},
-  toggleSess(){if(S.sessActive){clearInterval(S.sessTimer);S.sessActive=false;}else{S.sessActive=true;S.sessTimer=setInterval(()=>this.tickSess(),1000);}},
+  tickSess(){if(!S.sessStart)return;const e=Date.now()-S.sessStart;$('sess-t').textContent=`${pad(Math.floor(e/3600000))}:${pad(Math.floor((e%3600000)/60000))}:${pad(Math.floor((e%60000)/1000))}`;},
+  toggleSess(){if(S.sessActive){clearInterval(S.sessTimer);S.sessActive=false;$('sess-tog').textContent='▶';}else{S.sessActive=true;S.sessTimer=setInterval(()=>this.tickSess(),1000);$('sess-tog').textContent='⏸';}},
   stopSess(){clearInterval(S.sessTimer);clearInterval(S.restTimer);S.sessActive=false;S.sessStart=null;S.restRunning=false;},
 
   finishWorkout(){
@@ -251,7 +242,7 @@ const App = {
     if(r.bicep_curl)this.tryUnlock('curl_40',{bicep_curl:r.bicep_curl});
     if(r.pullups)this.tryUnlock('pullups_15',{pullups:r.pullups});
     if(vol>=10000)this.tryUnlock('volume_10k',{session_volume:vol});
-    this.saveUser();S.workLog=[];this.renderLog();
+    this.saveUser();S.workLog=[];this.renderLog();$('sess-t').textContent='00:00:00';
     this.updateUI();this.goTo('home');
     setTimeout(()=>toast(`💪 ¡Sesión completa! +${xpGain} XP · ${Math.round(vol).toLocaleString()} kg vol.`),300);
   },

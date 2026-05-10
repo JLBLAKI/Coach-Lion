@@ -117,19 +117,25 @@
     <!-- WORKOUT -->
     <div id="page-workout" class="page">
       <div class="scroll">
-        <h2 class="page-title" style="margin-bottom:14px">🏋️ SESIÓN ACTIVA</h2>
+        <div class="workout-toprow">
+          <h2 class="page-title">🏋️ SESIÓN</h2>
+          <div class="sess-clock">
+            <span id="sess-t">00:00:00</span>
+            <button class="btn-icon" id="sess-tog" onclick="App.toggleSess()">⏸</button>
+          </div>
+        </div>
 
         <!-- SINGLE REST TIMER -->
         <div class="rest-card">
           <div class="rest-top">
-            <h4>⏱ TEMPORIZADOR DE DESCANSO</h4>
-          </div>
-          <div class="rest-presets-row">
-            <button class="pre" onclick="App.setRest(30,this)">30s</button>
-            <button class="pre active" onclick="App.setRest(60,this)">1m</button>
-            <button class="pre" onclick="App.setRest(90,this)">1:30</button>
-            <button class="pre" onclick="App.setRest(120,this)">2m</button>
-            <button class="pre" onclick="App.setRest(180,this)">3m</button>
+            <h4>⏱ DESCANSO</h4>
+            <div class="rest-presets">
+              <button class="pre" onclick="App.setRest(30,this)">30s</button>
+              <button class="pre active" onclick="App.setRest(60,this)">1m</button>
+              <button class="pre" onclick="App.setRest(90,this)">1:30</button>
+              <button class="pre" onclick="App.setRest(120,this)">2m</button>
+              <button class="pre" onclick="App.setRest(180,this)">3m</button>
+            </div>
           </div>
           <div class="ring-wrap">
             <svg viewBox="0 0 100 100" class="ring-svg">
