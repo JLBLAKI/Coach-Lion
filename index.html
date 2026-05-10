@@ -2,303 +2,282 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="theme-color" content="#08080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lion">
 <title>COACH LION 🦁</title>
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- SPLASH -->
+<!-- ══ SPLASH ══ -->
 <div id="splash" class="splash">
   <div class="splash-rays"></div>
   <div class="splash-content">
     <div class="splash-lion">🦁</div>
-    <h1 class="splash-title">COACH<span>LION</span></h1>
-    <p class="splash-sub">UNLEASH YOUR INNER BEAST</p>
-    <div class="splash-loader"><div class="loader-fill"></div></div>
+    <p class="splash-welcome">BIENVENIDO AL</p>
+    <h1 class="splash-title">RETO</h1>
+    <p class="splash-sub">COACH LION · UNLEASH YOUR BEAST</p>
+    <div class="splash-bar"><div class="splash-fill"></div></div>
   </div>
 </div>
 
-<!-- AUTH -->
+<!-- ══ AUTH ══ -->
 <div id="auth" class="screen hidden">
-  <div class="auth-bg-grid"></div>
+  <div class="auth-bg"></div>
   <div class="auth-wrap">
     <div class="auth-brand">
-      <span class="brand-lion">🦁</span>
+      <span class="brand-icon">🦁</span>
       <h1>COACH <span>LION</span></h1>
       <p>FITNESS TRACKER EXTREME</p>
     </div>
-
-    <!-- LOGIN -->
-    <div id="form-login" class="glass-card">
-      <h2 class="card-heading">ENTRAR AL DOJO</h2>
+    <div id="form-login" class="card">
+      <h2 class="card-title">ENTRAR AL DOJO</h2>
       <div class="field"><span>👤</span><input id="l-user" type="text" placeholder="Usuario" autocomplete="username"></div>
       <div class="field"><span>🔐</span><input id="l-pass" type="password" placeholder="Contraseña" autocomplete="current-password"></div>
       <button class="btn-gold" onclick="App.login()">⚡ ENTRAR</button>
-      <button class="btn-bio hidden" id="bio-login-btn" onclick="App.biometricLogin()">🔱 Acceso Biométrico / Face ID</button>
-      <p class="switch-link">¿Nuevo guerrero? <a href="#" onclick="App.showRegister()">REGÍSTRATE</a></p>
+      <button class="btn-bio hidden" id="bio-btn" onclick="App.biometricLogin()">🔱 Face ID / Huella</button>
+      <p class="switch">¿Nuevo guerrero? <a href="#" onclick="App.showReg()">REGÍSTRATE</a></p>
     </div>
-
-    <!-- REGISTER -->
-    <div id="form-register" class="glass-card hidden">
-      <h2 class="card-heading">CREA TU PERFIL</h2>
+    <div id="form-reg" class="card hidden">
+      <h2 class="card-title">CREAR PERFIL</h2>
       <div class="reg-grid">
-        <div class="field span2"><span>⚔️</span><input id="r-name" type="text" placeholder="Nombre completo"></div>
-        <div class="field span2"><span>🦁</span><input id="r-user" type="text" placeholder="Usuario (ej: angel_r)"></div>
-        <div class="field span2"><span>🔐</span><input id="r-pass" type="password" placeholder="Contraseña"></div>
-        <div class="field"><span>⚖️</span><input id="r-weight" type="number" placeholder="Peso (kg)"></div>
-        <div class="field"><span>📏</span><input id="r-height" type="number" placeholder="Altura (cm)"></div>
+        <div class="field s2"><span>⚔️</span><input id="r-name" type="text" placeholder="Nombre completo"></div>
+        <div class="field s2"><span>🦁</span><input id="r-user" type="text" placeholder="Usuario (ej: angel_r)"></div>
+        <div class="field s2"><span>🔐</span><input id="r-pass" type="password" placeholder="Contraseña"></div>
+        <div class="field"><span>⚖️</span><input id="r-w" type="number" placeholder="Peso kg"></div>
+        <div class="field"><span>📏</span><input id="r-h" type="number" placeholder="Altura cm"></div>
         <div class="field"><span>🎂</span><input id="r-age" type="number" placeholder="Edad"></div>
-        <div class="field">
-          <span>📅</span>
-          <select id="r-days"><option value="">Días/sem</option><option value="2">2 días</option><option value="3">3 días</option><option value="4">4 días</option><option value="5">5 días</option><option value="6">6 días</option><option value="7">7 días</option></select>
+        <div class="field"><span>📅</span>
+          <select id="r-days"><option value="">Días/sem</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select>
         </div>
-        <div class="field span2">
-          <span>🎯</span>
-          <select id="r-goal"><option value="">Objetivo</option><option value="strength">Fuerza máxima</option><option value="hypertrophy">Hipertrofia / Masa</option><option value="weightloss">Pérdida de grasa</option><option value="endurance">Resistencia</option><option value="athletic">Rendimiento atlético</option></select>
+        <div class="field s2"><span>🎯</span>
+          <select id="r-goal"><option value="">Objetivo</option><option value="strength">Fuerza</option><option value="hypertrophy">Masa muscular</option><option value="weightloss">Pérdida de grasa</option><option value="endurance">Resistencia</option><option value="athletic">Rendimiento atlético</option></select>
         </div>
-        <div class="field span2">
-          <span>🏆</span>
+        <div class="field s2"><span>🏆</span>
           <select id="r-level"><option value="">Nivel</option><option value="beginner">Principiante (0-1 año)</option><option value="intermediate">Intermedio (1-3 años)</option><option value="advanced">Avanzado (3+ años)</option><option value="elite">Élite / Competidor</option></select>
         </div>
       </div>
-      <button class="btn-gold" onclick="App.register()">🦁 CREAR PERFIL</button>
-      <p class="switch-link">¿Ya eres guerrero? <a href="#" onclick="App.showLogin()">INICIA SESIÓN</a></p>
+      <button class="btn-gold" onclick="App.register()">🦁 CREAR MI PERFIL</button>
+      <p class="switch">¿Ya tienes cuenta? <a href="#" onclick="App.showLogin()">INICIA SESIÓN</a></p>
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- ══ APP ══ -->
 <div id="app" class="screen hidden">
-
-  <!-- TOPBAR -->
   <header class="topbar">
     <div class="topbar-logo">🦁 <span>COACH LION</span></div>
     <div class="topbar-right">
-      <button class="topbar-coach hidden" id="coach-btn" onclick="App.goTo('coach')" title="Panel Coach">⚙️</button>
+      <button class="btn-coach hidden" id="coach-btn" onclick="App.goTo('coach')">⚙️ COACH</button>
       <div class="topbar-user" onclick="App.goTo('profile')">
-        <span class="topbar-avatar" id="t-avatar">🔥</span>
+        <span id="t-avatar">🔥</span>
         <span id="t-name">GUERRERO</span>
       </div>
     </div>
   </header>
-
-  <!-- XP STRIP -->
-  <div class="xp-strip">
-    <div class="xp-fill" id="xp-fill"></div>
-    <span class="xp-txt" id="xp-txt">0 XP</span>
-  </div>
+  <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
 
   <main class="main">
 
-    <!-- ══ HOME ══ -->
+    <!-- HOME -->
     <div id="page-home" class="page active">
       <div class="scroll">
-        <div class="hero-card">
-          <div class="hero-left">
+        <div class="hero">
+          <div>
             <p class="hero-sub">BIENVENIDO DE VUELTA,</p>
             <h2 class="hero-name" id="h-name">GUERRERO</h2>
             <p class="hero-quote" id="h-quote">"El dolor de hoy es la fuerza de mañana."</p>
           </div>
-          <div class="hero-fire">🔥</div>
+          <span class="hero-fire">🔥</span>
         </div>
-
-        <div class="stats-grid">
-          <div class="scard" style="--a:#f5c518"><div class="scard-ico">💪</div><div class="scard-val" id="s-sessions">0</div><div class="scard-lbl">SESIONES</div></div>
-          <div class="scard" style="--a:#e53935"><div class="scard-ico">🏆</div><div class="scard-val" id="s-ach">0</div><div class="scard-lbl">LOGROS</div></div>
-          <div class="scard" style="--a:#00e5ff"><div class="scard-ico">⚡</div><div class="scard-val" id="s-xp">0</div><div class="scard-lbl">XP TOTAL</div></div>
-          <div class="scard" style="--a:#76ff03"><div class="scard-ico">🔥</div><div class="scard-val" id="s-streak">0</div><div class="scard-lbl">RACHA</div></div>
+        <div class="stats-row">
+          <div class="sc" style="--a:#f5c518"><div class="sc-i">💪</div><div class="sc-v" id="s-sess">0</div><div class="sc-l">SESIONES</div></div>
+          <div class="sc" style="--a:#e53935"><div class="sc-i">🏆</div><div class="sc-v" id="s-ach">0</div><div class="sc-l">LOGROS</div></div>
+          <div class="sc" style="--a:#00e5ff"><div class="sc-i">⚡</div><div class="sc-v" id="s-xp">0</div><div class="sc-l">XP</div></div>
+          <div class="sc" style="--a:#76ff03"><div class="sc-i">🔥</div><div class="sc-v" id="s-str">0</div><div class="sc-l">RACHA</div></div>
         </div>
-
-        <!-- QUICK CALCS -->
-        <div class="section-row"><h3 class="section-title">⚡ CALCULADORAS</h3></div>
-        <div class="calc-row">
-          <button class="calc-btn" onclick="App.openCalc('1rm')">🏋️ 1RM</button>
-          <button class="calc-btn" onclick="App.openCalc('calories')">🔥 Calorías</button>
-          <button class="calc-btn" onclick="App.openCalc('macros')">🥩 Macros</button>
-          <button class="calc-btn" onclick="App.openCalc('bmi')">📊 IMC</button>
-        </div>
-
-        <div class="section-row"><h3 class="section-title">📋 RUTINA DE HOY</h3><button class="btn-sm" onclick="App.startWorkout()">▶ INICIAR</button></div>
-        <div id="today-routine" class="today-routine-card"></div>
-
-        <!-- ACTIVITY CALENDAR -->
-        <div class="section-row"><h3 class="section-title">📅 ACTIVIDAD</h3></div>
-        <div id="activity-cal" class="activity-cal"></div>
-
-        <div class="section-row"><h3 class="section-title">🏆 LOGROS RECIENTES</h3><button class="btn-sm" onclick="App.goTo('achievements')">VER TODO</button></div>
-        <div id="recent-ach" class="ach-row"></div>
-
-        <div class="section-row"><h3 class="section-title">🎯 RETOS ACTIVOS</h3></div>
+        <div class="sec-row"><h3 class="sec-title">📅 ACTIVIDAD (28 DÍAS)</h3></div>
+        <div id="act-cal" class="act-cal"></div>
+        <div class="sec-row"><h3 class="sec-title">📋 RUTINA DE HOY</h3><button class="btn-sm" onclick="App.startWorkout()">▶ INICIAR</button></div>
+        <div id="today-r" class="today-r"></div>
+        <div class="sec-row"><h3 class="sec-title">🎯 RETOS ACTIVOS</h3></div>
         <div id="challenges" class="challenges"></div>
+        <div class="sec-row"><h3 class="sec-title">🏆 LOGROS RECIENTES</h3><button class="btn-sm" onclick="App.goTo('achievements')">VER TODO</button></div>
+        <div id="recent-ach" class="recent-ach"></div>
       </div>
     </div>
 
-    <!-- ══ WORKOUT ══ -->
+    <!-- WORKOUT -->
     <div id="page-workout" class="page">
       <div class="scroll">
-        <div class="workout-head">
-          <h2 class="page-title">🏋️ SESIÓN ACTIVA</h2>
-          <div class="session-clock">
-            <span id="sess-time">00:00:00</span>
-            <button class="btn-icon" id="sess-tog" onclick="App.toggleSession()">⏸</button>
+        <div class="workout-toprow">
+          <h2 class="page-title">🏋️ SESIÓN</h2>
+          <div class="sess-clock">
+            <span id="sess-t">00:00:00</span>
+            <button class="btn-icon" id="sess-tog" onclick="App.toggleSess()">⏸</button>
           </div>
         </div>
 
-        <!-- REST TIMER -->
+        <!-- SINGLE REST TIMER -->
         <div class="rest-card">
-          <h4 class="rest-title">⏱ DESCANSO</h4>
+          <div class="rest-top">
+            <h4>⏱ DESCANSO</h4>
+            <div class="rest-presets">
+              <button class="pre" onclick="App.setRest(30,this)">30s</button>
+              <button class="pre active" onclick="App.setRest(60,this)">1m</button>
+              <button class="pre" onclick="App.setRest(90,this)">1:30</button>
+              <button class="pre" onclick="App.setRest(120,this)">2m</button>
+              <button class="pre" onclick="App.setRest(180,this)">3m</button>
+            </div>
+          </div>
           <div class="ring-wrap">
-            <svg viewBox="0 0 120 120" class="ring-svg">
-              <circle cx="60" cy="60" r="52" class="ring-bg"/>
-              <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg"/>
+            <svg viewBox="0 0 100 100" class="ring-svg">
+              <circle cx="50" cy="50" r="44" class="ring-bg"/>
+              <circle cx="50" cy="50" r="44" class="ring-fg" id="ring-fg"/>
             </svg>
-            <div class="ring-center">
-              <span id="rest-disp">60</span>
+            <div class="ring-mid">
+              <span id="rest-n">60</span>
               <span class="ring-unit">SEG</span>
             </div>
           </div>
-          <div class="presets">
-            <button class="preset" onclick="App.setRest(30)">30s</button>
-            <button class="preset active" onclick="App.setRest(60)">1m</button>
-            <button class="preset" onclick="App.setRest(90)">1:30</button>
-            <button class="preset" onclick="App.setRest(120)">2m</button>
-            <button class="preset" onclick="App.setRest(180)">3m</button>
-          </div>
           <div class="rest-btns">
-            <button class="btn-gold" onclick="App.startRest()">⚡ INICIAR DESCANSO</button>
-            <button class="btn-ghost" onclick="App.stopRest()">✕ CANCELAR</button>
+            <button class="btn-gold" id="rest-start-btn" onclick="App.toggleRest()">▶ INICIAR</button>
+            <button class="btn-ghost" onclick="App.resetRest()">↺ RESET</button>
           </div>
         </div>
 
-        <!-- INTERVAL TIMER -->
-        <div class="interval-card">
-          <h4 class="rest-title">💥 TIMER HIIT / INTERVALOS</h4>
-          <div class="interval-cfg">
-            <div class="int-field"><label>Trabajo (seg)</label><input type="number" id="int-work" value="40"></div>
-            <div class="int-field"><label>Descanso (seg)</label><input type="number" id="int-rest" value="20"></div>
-            <div class="int-field"><label>Rondas</label><input type="number" id="int-rounds" value="8"></div>
-          </div>
-          <div class="interval-display hidden" id="int-display">
-            <div class="int-phase" id="int-phase">TRABAJO</div>
-            <div class="int-time" id="int-time">40</div>
-            <div class="int-round" id="int-round">Ronda 1 / 8</div>
-          </div>
-          <button class="btn-gold" id="int-btn" onclick="App.toggleInterval()">▶ INICIAR HIIT</button>
-        </div>
-
-        <div class="section-row"><h3 class="section-title">EJERCICIOS</h3><button class="btn-sm" onclick="App.openExSearch()">+ AGREGAR</button></div>
-        <div id="ex-log" class="ex-log"></div>
+        <div class="sec-row"><h3 class="sec-title">EJERCICIOS</h3><button class="btn-sm" onclick="App.openSearch()">+ AGREGAR</button></div>
 
         <!-- EX SEARCH -->
         <div id="ex-search" class="ex-search hidden">
-          <div class="search-head"><h4>BUSCAR EJERCICIO</h4><button onclick="App.closeExSearch()">✕</button></div>
+          <div class="search-head">
+            <h4>BUSCAR EJERCICIO</h4>
+            <button onclick="App.closeSearch()">✕</button>
+          </div>
           <div class="field"><span>🔍</span><input id="ex-q" type="text" placeholder="Bench press, curl, sentadilla..." oninput="App.searchEx(this.value)"></div>
-          <div class="muscle-filters" id="mfilters"></div>
-          <div id="ex-results" class="ex-results"></div>
+          <div class="mfilters" id="mfilters"></div>
+          <div id="ex-res" class="ex-res"></div>
         </div>
 
+        <div id="ex-log" class="ex-log"></div>
         <button class="btn-finish" onclick="App.finishWorkout()">🏁 TERMINAR SESIÓN</button>
       </div>
     </div>
 
-    <!-- ══ ROUTINES ══ -->
+    <!-- ROUTINES -->
     <div id="page-routines" class="page">
       <div class="scroll">
-        <div class="section-row"><h2 class="page-title">📋 RUTINAS</h2><button class="btn-sm" onclick="App.openCreateRoutine()">+ NUEVA</button></div>
+        <div class="sec-row"><h2 class="page-title">📋 RUTINAS</h2><button class="btn-sm" onclick="App.openCreateRoutine()">+ NUEVA</button></div>
         <div id="routines-list" class="routines-list"></div>
       </div>
     </div>
 
-    <!-- ══ PROGRESS ══ -->
+    <!-- PROGRESS -->
     <div id="page-progress" class="page">
       <div class="scroll">
-        <h2 class="page-title">📈 MI PROGRESO</h2>
-
-        <div class="section-row"><h3 class="section-title">EJERCICIO A GRAFICAR</h3></div>
-        <div class="chart-selector" id="chart-selector"></div>
-
-        <div class="chart-card">
-          <canvas id="progress-chart"></canvas>
+        <h2 class="page-title">📈 PROGRESO</h2>
+        <div class="sec-row"><h3 class="sec-title">EJERCICIO</h3></div>
+        <div id="chart-sel" class="chart-sel"></div>
+        <div class="chart-card"><canvas id="prog-chart"></canvas></div>
+        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">VOLUMEN SEMANAL</h3></div>
+        <div class="chart-card"><canvas id="vol-chart"></canvas></div>
+        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">🏅 RÉCORDS</h3></div>
+        <div id="records" class="records"></div>
+        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">📸 FOTOS DE PROGRESO</h3><button class="btn-sm" onclick="App.addPhoto()">+ FOTO</button></div>
+        <div id="photos" class="photos"></div>
+        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">⚙️ CALCULADORAS</h3></div>
+        <div class="calcs-grid">
+          <button class="calc-btn" onclick="App.openCalc('1rm')">🏋️<br>1RM</button>
+          <button class="calc-btn" onclick="App.openCalc('cal')">🔥<br>CALORÍAS</button>
+          <button class="calc-btn" onclick="App.openCalc('macros')">🥩<br>MACROS</button>
+          <button class="calc-btn" onclick="App.openCalc('bmi')">📊<br>IMC</button>
         </div>
-
-        <div class="section-row" style="margin-top:20px"><h3 class="section-title">VOLUMEN SEMANAL</h3></div>
-        <div class="chart-card">
-          <canvas id="volume-chart"></canvas>
-        </div>
-
-        <!-- RECORDS -->
-        <div class="section-row" style="margin-top:20px"><h3 class="section-title">🏅 RÉCORDS PERSONALES</h3></div>
-        <div id="records-list" class="records-list"></div>
-
-        <!-- PHOTO PROGRESS -->
-        <div class="section-row" style="margin-top:20px"><h3 class="section-title">📸 FOTOS DE PROGRESO</h3><button class="btn-sm" onclick="App.addProgressPhoto()">+ FOTO</button></div>
-        <div id="photos-grid" class="photos-grid"></div>
       </div>
     </div>
 
-    <!-- ══ ACHIEVEMENTS ══ -->
+    <!-- ACHIEVEMENTS -->
     <div id="page-achievements" class="page">
       <div class="scroll">
         <h2 class="page-title">🏆 SALÓN DE GLORIA</h2>
-        <p class="page-sub">Desbloquea logros completando hazañas épicas</p>
-        <div class="ach-filter-row" id="ach-filters"></div>
+        <p class="page-sub">Completa hazañas para desbloquear logros épicos</p>
+        <div id="ach-filters" class="ach-filters"></div>
         <div id="ach-grid" class="ach-grid"></div>
       </div>
     </div>
 
-    <!-- ══ PROFILE ══ -->
+    <!-- PROFILE -->
     <div id="page-profile" class="page">
       <div class="scroll">
         <div class="profile-hero">
-          <div class="profile-arc" id="p-arc">🦁</div>
-          <h2 class="profile-name" id="p-name">GUERRERO</h2>
-          <div class="profile-badge" id="p-badge">⚔️ NOVATO</div>
-          <div class="profile-lv">
-            <span id="p-lv">NIVEL 1</span>
-            <div class="lv-bar"><div class="lv-fill" id="lv-fill"></div></div>
-          </div>
+          <div class="p-avatar" id="p-avatar">🦁</div>
+          <h2 class="p-name" id="p-name">GUERRERO</h2>
+          <div class="p-badge" id="p-badge">⚔️ NOVATO</div>
+          <div class="p-lv"><span id="p-lv-txt">NIVEL 1</span><div class="lv-bar"><div class="lv-fill" id="lv-fill"></div></div></div>
         </div>
-        <div class="profile-stats" id="p-stats"></div>
-        <div class="section-row" style="margin-top:8px"><h3 class="section-title">CONFIGURACIÓN</h3></div>
-        <div class="settings-list" id="settings-list"></div>
+        <div id="p-stats" class="p-stats"></div>
+        <div class="sec-row"><h3 class="sec-title">AJUSTES</h3></div>
+        <div id="p-settings" class="settings-list"></div>
       </div>
     </div>
 
-    <!-- ══ COACH PANEL ══ -->
+    <!-- COACH PANEL -->
     <div id="page-coach" class="page">
       <div class="scroll">
         <h2 class="page-title">⚙️ PANEL COACH</h2>
-        <p class="page-sub">Vista exclusiva del entrenador</p>
-        <div class="section-row"><h3 class="section-title">👥 MIS ATLETAS</h3></div>
-        <div id="athletes-list" class="athletes-list"></div>
-        <div class="section-row" style="margin-top:16px"><h3 class="section-title">📤 ASIGNAR RUTINA</h3></div>
-        <div class="assign-card glass-card">
-          <div class="field"><span>👤</span><select id="assign-user"><option value="">Seleccionar atleta...</option></select></div>
-          <div class="field"><span>📋</span><select id="assign-routine"><option value="">Seleccionar rutina...</option></select></div>
-          <button class="btn-gold" onclick="App.assignRoutine()">📤 ASIGNAR</button>
+
+        <!-- TABS -->
+        <div class="coach-tabs">
+          <button class="ctab active" onclick="App.coachTab('athletes')">👥 Atletas</button>
+          <button class="ctab" onclick="App.coachTab('routines')">📋 Rutinas</button>
+          <button class="ctab" onclick="App.coachTab('challenges')">🎯 Retos</button>
+          <button class="ctab" onclick="App.coachTab('messages')">💬 Mensajes</button>
         </div>
-        <div class="section-row" style="margin-top:16px"><h3 class="section-title">💬 MENSAJE MOTIVACIONAL</h3></div>
-        <div class="glass-card" style="gap:12px;display:flex;flex-direction:column">
-          <div class="field"><span>👤</span><select id="msg-user"><option value="">Seleccionar atleta...</option></select></div>
-          <textarea id="msg-text" placeholder="Escribe un mensaje de motivación..." style="background:var(--d3);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:var(--fu);font-size:14px;padding:12px;resize:vertical;min-height:80px;outline:none"></textarea>
-          <button class="btn-gold" onclick="App.sendCoachMessage()">💬 ENVIAR MENSAJE</button>
+
+        <!-- ATLETAS -->
+        <div id="ct-athletes" class="coach-tab-content">
+          <div id="athletes-list" class="athletes-list"></div>
+        </div>
+
+        <!-- RUTINAS COACH -->
+        <div id="ct-routines" class="coach-tab-content hidden">
+          <button class="btn-gold" style="margin-bottom:14px" onclick="App.openCreateRoutine()">+ CREAR RUTINA</button>
+          <div id="coach-routines-list" class="routines-list"></div>
+          <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">ASIGNAR RUTINA</h3></div>
+          <div class="card" style="gap:10px">
+            <div class="field"><span>👤</span><select id="assign-user"><option value="">Atleta...</option></select></div>
+            <div class="field"><span>📋</span><select id="assign-routine"><option value="">Rutina...</option></select></div>
+            <button class="btn-gold" onclick="App.assignRoutine()">📤 ASIGNAR</button>
+          </div>
+        </div>
+
+        <!-- RETOS COACH -->
+        <div id="ct-challenges" class="coach-tab-content hidden">
+          <button class="btn-gold" style="margin-bottom:14px" onclick="App.openCreateChallenge()">+ CREAR RETO</button>
+          <div id="coach-challenges-list" class="challenges-list"></div>
+        </div>
+
+        <!-- MENSAJES -->
+        <div id="ct-messages" class="coach-tab-content hidden">
+          <div class="card" style="gap:10px">
+            <div class="field"><span>👤</span><select id="msg-user"><option value="">Atleta...</option></select></div>
+            <textarea id="msg-text" class="msg-area" placeholder="Escribe tu mensaje motivacional..."></textarea>
+            <button class="btn-gold" onclick="App.sendMsg()">💬 ENVIAR MENSAJE</button>
+          </div>
+          <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">MENSAJES ENVIADOS</h3></div>
+          <div id="sent-msgs" class="sent-msgs"></div>
         </div>
       </div>
     </div>
 
   </main>
 
-  <!-- BOTTOM NAV -->
   <nav class="bnav">
     <button class="nb active" onclick="App.goTo('home')" data-p="home"><span>🏠</span><span>INICIO</span></button>
     <button class="nb" onclick="App.goTo('workout')" data-p="workout"><span>⚡</span><span>ENTRENA</span></button>
@@ -309,41 +288,60 @@
 </div>
 
 <!-- ══ MODALS ══ -->
-
-<!-- EXERCISE DETAIL -->
 <div id="modal-ex" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3 id="ex-m-name">EJERCICIO</h3><button onclick="App.closeModal('modal-ex')">✕</button></div>
-    <div id="ex-m-media" class="ex-media"><div class="ex-media-ph" id="ex-media-ph">🏋️</div></div>
-    <div class="ex-tags" id="ex-m-tags"></div>
-    <p id="ex-m-inst" class="ex-inst"></p>
+    <div id="ex-media" class="ex-media"><span id="ex-media-ph">🏋️</span></div>
+    <div id="ex-tags" class="ex-tags"></div>
+    <p id="ex-inst" class="ex-inst"></p>
     <div class="set-logger">
       <h4>REGISTRAR SERIES</h4>
       <div class="set-row">
-        <input type="number" id="sw" placeholder="Peso (kg)" step="0.5">
+        <input type="number" id="sw" placeholder="Peso kg" step="0.5">
         <input type="number" id="sr" placeholder="Reps">
         <button class="btn-sm" onclick="App.logSet()">+ SET</button>
       </div>
       <div id="sets-done" class="sets-done"></div>
     </div>
-    <button class="btn-gold" onclick="App.confirmExercise()">✅ AGREGAR AL LOG</button>
+    <button class="btn-gold" onclick="App.confirmEx()">✅ AGREGAR AL LOG</button>
   </div>
 </div>
 
-<!-- CREATE ROUTINE -->
 <div id="modal-routine" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3>CREAR RUTINA</h3><button onclick="App.closeModal('modal-routine')">✕</button></div>
     <div class="field"><span>📋</span><input id="rn-name" type="text" placeholder="Nombre de la rutina"></div>
-    <div class="field"><span>🎯</span><select id="rn-type"><option value="strength">Fuerza</option><option value="hypertrophy">Hipertrofia</option><option value="cardio">Cardio</option><option value="fullbody">Full Body</option><option value="ppl">Push/Pull/Legs</option><option value="hiit">HIIT</option></select></div>
-    <div class="field"><span>📅</span><select id="rn-day"><option value="monday">Lunes</option><option value="tuesday">Martes</option><option value="wednesday">Miércoles</option><option value="thursday">Jueves</option><option value="friday">Viernes</option><option value="saturday">Sábado</option><option value="sunday">Domingo</option><option value="any">Cualquier día</option></select></div>
+    <div class="field"><span>🎯</span>
+      <select id="rn-type"><option value="strength">Fuerza</option><option value="hypertrophy">Hipertrofia</option><option value="cardio">Cardio</option><option value="fullbody">Full Body</option><option value="ppl">Push/Pull/Legs</option><option value="hiit">HIIT</option></select>
+    </div>
+    <div class="field"><span>📅</span>
+      <select id="rn-day"><option value="monday">Lunes</option><option value="tuesday">Martes</option><option value="wednesday">Miércoles</option><option value="thursday">Jueves</option><option value="friday">Viernes</option><option value="saturday">Sábado</option><option value="sunday">Domingo</option><option value="any">Cualquier día</option></select>
+    </div>
     <div id="rn-exlist" class="rn-exlist"></div>
     <button class="btn-ghost" onclick="App.addExToRoutine()">+ Agregar ejercicio</button>
     <button class="btn-gold" onclick="App.saveRoutine()">💾 GUARDAR RUTINA</button>
   </div>
 </div>
 
-<!-- CALCULATOR -->
+<div id="modal-challenge" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>CREAR RETO</h3><button onclick="App.closeModal('modal-challenge')">✕</button></div>
+    <div class="field"><span>🎯</span><input id="ch-name" type="text" placeholder="Nombre del reto (ej: Thanos Junior)"></div>
+    <div class="field"><span>📝</span><input id="ch-desc" type="text" placeholder="Descripción (ej: Press banca 100kg)"></div>
+    <div class="field"><span>🏆</span><input id="ch-reward" type="text" placeholder="Recompensa (ej: 500 XP)"></div>
+    <div class="field"><span>🎮</span>
+      <select id="ch-type"><option value="sessions_week">Sesiones esta semana</option><option value="total_volume">Volumen total kg</option><option value="streak">Días seguidos</option><option value="logged_sets">Series registradas</option><option value="custom">Logro personalizado</option></select>
+    </div>
+    <div class="field"><span>🔢</span><input id="ch-target" type="number" placeholder="Meta (número)"></div>
+    <div class="ch-img-preview hidden" id="ch-img-preview">
+      <p style="font-size:11px;color:var(--gold);font-family:var(--ft);letter-spacing:1px;margin-bottom:8px">🎨 IMAGEN GENERADA POR IA</p>
+      <div id="ch-img-container" class="ch-img-container"></div>
+    </div>
+    <button class="btn-ghost" id="ch-gen-btn" onclick="App.genChallengeImage()">🎨 GENERAR IMAGEN CON IA</button>
+    <button class="btn-gold" onclick="App.saveChallenge()">💾 GUARDAR RETO</button>
+  </div>
+</div>
+
 <div id="modal-calc" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3 id="calc-title">CALCULADORA</h3><button onclick="App.closeModal('modal-calc')">✕</button></div>
@@ -355,29 +353,29 @@
 <div id="ach-popup" class="ach-popup hidden">
   <div class="ach-popup-card">
     <div class="popup-glow"></div>
-    <div class="popup-label">⚡ LOGRO DESBLOQUEADO ⚡</div>
+    <p class="popup-label">⚡ LOGRO DESBLOQUEADO ⚡</p>
     <div class="popup-ico" id="pop-ico">🏆</div>
-    <div class="popup-name" id="pop-name">NOMBRE</div>
-    <div class="popup-desc" id="pop-desc">Descripción</div>
-    <div class="popup-xp" id="pop-xp">+500 XP</div>
+    <h2 class="popup-name" id="pop-name">NOMBRE</h2>
+    <p class="popup-desc" id="pop-desc">Descripción</p>
+    <div id="pop-ch-img" class="pop-ch-img hidden"></div>
+    <p class="popup-xp" id="pop-xp">+500 XP</p>
     <button class="btn-gold" onclick="App.closeAchPopup()">¡ÉPICO! 🦁</button>
   </div>
 </div>
 
-<!-- COACH MESSAGE POPUP (for users) -->
-<div id="coach-msg-popup" class="ach-popup hidden">
+<!-- COACH MSG POPUP -->
+<div id="coach-popup" class="ach-popup hidden">
   <div class="ach-popup-card" style="border-color:var(--cyan)">
-    <div class="popup-glow" style="background:radial-gradient(circle,rgba(0,229,255,.15),transparent 60%)"></div>
-    <div class="popup-label" style="color:var(--cyan)">💬 MENSAJE DE TU COACH</div>
+    <div class="popup-glow" style="background:radial-gradient(circle,rgba(0,229,255,.12),transparent 60%)"></div>
+    <p class="popup-label" style="color:var(--cyan)">💬 MENSAJE DE TU COACH</p>
     <div class="popup-ico">🦁</div>
-    <div class="popup-desc" id="coach-msg-text" style="font-size:16px;color:var(--white)"></div>
-    <button class="btn-gold" onclick="App.closeCoachMsg()">¡ENTENDIDO!</button>
+    <p id="coach-msg-txt" class="popup-desc" style="font-size:15px;color:var(--white)"></p>
+    <button class="btn-gold" onclick="App.closeCoachPopup()">¡ENTENDIDO!</button>
   </div>
 </div>
 
-<!-- NOTIF BANNER -->
 <div id="notif-bar" class="notif-bar hidden">
-  <p>⚡ Activa notificaciones para el timer de descanso</p>
+  <p>⚡ Activa notificaciones para el timer</p>
   <button onclick="App.reqNotif()">ACTIVAR</button>
   <button onclick="App.dimNotif()">✕</button>
 </div>
