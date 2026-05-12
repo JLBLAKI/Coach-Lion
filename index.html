@@ -16,7 +16,7 @@
 </head>
 <body>
 
-<!-- ══ SPLASH ══ -->
+<!-- SPLASH -->
 <div id="splash" class="splash">
   <div class="splash-rays"></div>
   <div class="splash-content">
@@ -28,7 +28,7 @@
   </div>
 </div>
 
-<!-- ══ AUTH ══ -->
+<!-- AUTH -->
 <div id="auth" class="screen hidden">
   <div class="auth-bg"></div>
   <div class="auth-wrap">
@@ -70,7 +70,7 @@
   </div>
 </div>
 
-<!-- ══ APP ══ -->
+<!-- APP -->
 <div id="app" class="screen hidden">
   <header class="topbar">
     <div class="topbar-logo">🦁 <span>COACH LION</span></div>
@@ -90,8 +90,8 @@
     <div id="page-home" class="page active">
       <div class="scroll">
         <div class="hero">
-          <div>
-            <p class="hero-sub">BIENVENIDO DE VUELTA,</p>
+          <div class="hero-left">
+            <p class="hero-sub">BIENVENIDO,</p>
             <h2 class="hero-name" id="h-name">GUERRERO</h2>
             <p class="hero-quote" id="h-quote">"El dolor de hoy es la fuerza de mañana."</p>
           </div>
@@ -103,7 +103,7 @@
           <div class="sc" style="--a:#00e5ff"><div class="sc-i">⚡</div><div class="sc-v" id="s-xp">0</div><div class="sc-l">XP</div></div>
           <div class="sc" style="--a:#76ff03"><div class="sc-i">🔥</div><div class="sc-v" id="s-str">0</div><div class="sc-l">RACHA</div></div>
         </div>
-        <div class="sec-row"><h3 class="sec-title">📅 ACTIVIDAD (28 DÍAS)</h3></div>
+        <div class="sec-row"><h3 class="sec-title">📅 ACTIVIDAD</h3></div>
         <div id="act-cal" class="act-cal"></div>
         <div class="sec-row"><h3 class="sec-title">📋 RUTINA DE HOY</h3><button class="btn-sm" onclick="App.startWorkout()">▶ INICIAR</button></div>
         <div id="today-r" class="today-r"></div>
@@ -117,19 +117,19 @@
     <!-- WORKOUT -->
     <div id="page-workout" class="page">
       <div class="scroll">
-        <h2 class="page-title" style="margin-bottom:14px">🏋️ SESIÓN ACTIVA</h2>
+        <h2 class="page-title" style="margin-bottom:12px">🏋️ SESIÓN ACTIVA</h2>
 
-        <!-- SINGLE REST TIMER -->
+        <!-- REST TIMER -->
         <div class="rest-card">
-          <div class="rest-top">
-            <h4>⏱ TEMPORIZADOR DE DESCANSO</h4>
-          </div>
-          <div class="rest-presets-row">
-            <button class="pre" onclick="App.setRest(30,this)">30s</button>
-            <button class="pre active" onclick="App.setRest(60,this)">1m</button>
-            <button class="pre" onclick="App.setRest(90,this)">1:30</button>
-            <button class="pre" onclick="App.setRest(120,this)">2m</button>
-            <button class="pre" onclick="App.setRest(180,this)">3m</button>
+          <div class="rest-top-row">
+            <h4 class="rest-label">⏱ DESCANSO</h4>
+            <div class="rest-presets-row">
+              <button class="pre" onclick="App.setRest(30,this)">30s</button>
+              <button class="pre active" onclick="App.setRest(60,this)">1m</button>
+              <button class="pre" onclick="App.setRest(90,this)">1:30</button>
+              <button class="pre" onclick="App.setRest(120,this)">2m</button>
+              <button class="pre" onclick="App.setRest(180,this)">3m</button>
+            </div>
           </div>
           <div class="ring-wrap">
             <svg viewBox="0 0 100 100" class="ring-svg">
@@ -147,14 +147,17 @@
           </div>
         </div>
 
-        <div class="sec-row"><h3 class="sec-title">EJERCICIOS</h3><button class="btn-sm" onclick="App.openSearch()">+ AGREGAR</button></div>
+        <!-- CIRCUIT REST BANNER -->
+        <div id="circuit-banner" class="circuit-banner hidden">
+          <span id="circuit-label">🔄 Circuito 1 completo</span>
+          <span id="circuit-rest-info">Descanso: 90s entre circuitos</span>
+        </div>
 
-        <!-- EX SEARCH -->
+        <div class="sec-row" style="margin-top:4px"><h3 class="sec-title">EJERCICIOS</h3><button class="btn-sm" onclick="App.openSearch()">+ AGREGAR</button></div>
+
+        <!-- EXERCISE SEARCH -->
         <div id="ex-search" class="ex-search hidden">
-          <div class="search-head">
-            <h4>BUSCAR EJERCICIO</h4>
-            <button onclick="App.closeSearch()">✕</button>
-          </div>
+          <div class="search-head"><h4>BUSCAR EJERCICIO</h4><button onclick="App.closeSearch()">✕</button></div>
           <div class="field"><span>🔍</span><input id="ex-q" type="text" placeholder="Bench press, curl, sentadilla..." oninput="App.searchEx(this.value)"></div>
           <div class="mfilters" id="mfilters"></div>
           <div id="ex-res" class="ex-res"></div>
@@ -180,13 +183,13 @@
         <div class="sec-row"><h3 class="sec-title">EJERCICIO</h3></div>
         <div id="chart-sel" class="chart-sel"></div>
         <div class="chart-card"><canvas id="prog-chart"></canvas></div>
-        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">VOLUMEN SEMANAL</h3></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">VOLUMEN SEMANAL</h3></div>
         <div class="chart-card"><canvas id="vol-chart"></canvas></div>
-        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">🏅 RÉCORDS</h3></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">🏅 RÉCORDS</h3></div>
         <div id="records" class="records"></div>
-        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">📸 FOTOS DE PROGRESO</h3><button class="btn-sm" onclick="App.addPhoto()">+ FOTO</button></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">📸 FOTOS DE PROGRESO</h3><button class="btn-sm" onclick="App.addPhoto()">+ FOTO</button></div>
         <div id="photos" class="photos"></div>
-        <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">⚙️ CALCULADORAS</h3></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">⚙️ CALCULADORAS</h3></div>
         <div class="calcs-grid">
           <button class="calc-btn" onclick="App.openCalc('1rm')">🏋️<br>1RM</button>
           <button class="calc-btn" onclick="App.openCalc('cal')">🔥<br>CALORÍAS</button>
@@ -221,50 +224,38 @@
       </div>
     </div>
 
-    <!-- COACH PANEL -->
+    <!-- COACH -->
     <div id="page-coach" class="page">
       <div class="scroll">
         <h2 class="page-title">⚙️ PANEL COACH</h2>
-
-        <!-- TABS -->
         <div class="coach-tabs">
-          <button class="ctab active" onclick="App.coachTab('athletes')">👥 Atletas</button>
-          <button class="ctab" onclick="App.coachTab('routines')">📋 Rutinas</button>
-          <button class="ctab" onclick="App.coachTab('challenges')">🎯 Retos</button>
-          <button class="ctab" onclick="App.coachTab('messages')">💬 Mensajes</button>
+          <button class="ctab active" onclick="App.coachTab('athletes',this)">👥 Atletas</button>
+          <button class="ctab" onclick="App.coachTab('routines',this)">📋 Rutinas</button>
+          <button class="ctab" onclick="App.coachTab('challenges',this)">🎯 Retos</button>
+          <button class="ctab" onclick="App.coachTab('messages',this)">💬 Mensajes</button>
         </div>
-
-        <!-- ATLETAS -->
-        <div id="ct-athletes" class="coach-tab-content">
-          <div id="athletes-list" class="athletes-list"></div>
-        </div>
-
-        <!-- RUTINAS COACH -->
-        <div id="ct-routines" class="coach-tab-content hidden">
-          <button class="btn-gold" style="margin-bottom:14px" onclick="App.openCreateRoutine()">+ CREAR RUTINA</button>
+        <div id="ct-athletes" class="ctab-body"><div id="athletes-list" class="athletes-list"></div></div>
+        <div id="ct-routines" class="ctab-body hidden">
+          <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateRoutine()">+ CREAR RUTINA</button>
           <div id="coach-routines-list" class="routines-list"></div>
-          <div class="sec-row" style="margin-top:16px"><h3 class="sec-title">ASIGNAR RUTINA</h3></div>
+          <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">ASIGNAR RUTINA</h3></div>
           <div class="card" style="gap:10px">
             <div class="field"><span>👤</span><select id="assign-user"><option value="">Atleta...</option></select></div>
             <div class="field"><span>📋</span><select id="assign-routine"><option value="">Rutina...</option></select></div>
             <button class="btn-gold" onclick="App.assignRoutine()">📤 ASIGNAR</button>
           </div>
         </div>
-
-        <!-- RETOS COACH -->
-        <div id="ct-challenges" class="coach-tab-content hidden">
-          <button class="btn-gold" style="margin-bottom:14px" onclick="App.openCreateChallenge()">+ CREAR RETO</button>
+        <div id="ct-challenges" class="ctab-body hidden">
+          <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateChallenge()">+ CREAR RETO</button>
           <div id="coach-challenges-list" class="challenges-list"></div>
         </div>
-
-        <!-- MENSAJES -->
-        <div id="ct-messages" class="coach-tab-content hidden">
+        <div id="ct-messages" class="ctab-body hidden">
           <div class="card" style="gap:10px">
             <div class="field"><span>👤</span><select id="msg-user"><option value="">Atleta...</option></select></div>
             <textarea id="msg-text" class="msg-area" placeholder="Escribe tu mensaje motivacional..."></textarea>
             <button class="btn-gold" onclick="App.sendMsg()">💬 ENVIAR MENSAJE</button>
           </div>
-          <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">MENSAJES ENVIADOS</h3></div>
+          <div class="sec-row" style="margin-top:12px"><h3 class="sec-title">ENVIADOS</h3></div>
           <div id="sent-msgs" class="sent-msgs"></div>
         </div>
       </div>
@@ -282,6 +273,8 @@
 </div>
 
 <!-- ══ MODALS ══ -->
+
+<!-- EXERCISE DETAIL -->
 <div id="modal-ex" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3 id="ex-m-name">EJERCICIO</h3><button onclick="App.closeModal('modal-ex')">✕</button></div>
@@ -301,6 +294,7 @@
   </div>
 </div>
 
+<!-- CREATE ROUTINE (mejorado) -->
 <div id="modal-routine" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3>CREAR RUTINA</h3><button onclick="App.closeModal('modal-routine')">✕</button></div>
@@ -311,31 +305,102 @@
     <div class="field"><span>📅</span>
       <select id="rn-day"><option value="monday">Lunes</option><option value="tuesday">Martes</option><option value="wednesday">Miércoles</option><option value="thursday">Jueves</option><option value="friday">Viernes</option><option value="saturday">Sábado</option><option value="sunday">Domingo</option><option value="any">Cualquier día</option></select>
     </div>
+
+    <!-- CIRCUIT REST -->
+    <div class="circuit-rest-row">
+      <div class="field" style="flex:1"><span>🔄</span><input id="rn-circuit-rest" type="number" placeholder="Descanso entre circuitos (seg)" value="90"></div>
+    </div>
+
+    <!-- EXERCISE BUILDER -->
+    <div class="ex-builder-header">
+      <h4>EJERCICIOS</h4>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="App.addCircuitBreak()">+ CIRCUITO</button>
+        <button class="btn-sm" onclick="App.openExPicker()">+ EJERCICIO</button>
+      </div>
+    </div>
     <div id="rn-exlist" class="rn-exlist"></div>
-    <button class="btn-ghost" onclick="App.addExToRoutine()">+ Agregar ejercicio</button>
+
     <button class="btn-gold" onclick="App.saveRoutine()">💾 GUARDAR RUTINA</button>
   </div>
 </div>
 
+<!-- EXERCISE PICKER (dentro de crear rutina) -->
+<div id="modal-expicker" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>AGREGAR EJERCICIO</h3><button onclick="App.closeModal('modal-expicker')">✕</button></div>
+
+    <!-- SEARCH -->
+    <div class="field"><span>🔍</span><input id="picker-q" type="text" placeholder="Nombre del ejercicio..." oninput="App.pickerSearch(this.value)"></div>
+    <div id="picker-results" class="ex-res" style="max-height:140px"></div>
+    <div id="picker-selected" class="picker-selected hidden">
+      <span id="picker-sel-name" class="picker-sel-nm"></span>
+      <button onclick="App.clearPickerSel()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>
+    </div>
+
+    <!-- EXERCISE FIELDS -->
+    <div class="ex-fields-grid">
+      <div class="ex-field-item">
+        <label>⚖️ Peso (kg)</label>
+        <input type="number" id="pex-weight" placeholder="0" step="0.5">
+      </div>
+      <div class="ex-field-item">
+        <label>🔢 Series</label>
+        <input type="number" id="pex-sets" placeholder="3">
+      </div>
+      <div class="ex-field-item">
+        <label>♻️ Reps</label>
+        <input type="number" id="pex-reps" placeholder="10">
+      </div>
+      <div class="ex-field-item">
+        <label>⏱ Desc. serie (s)</label>
+        <input type="number" id="pex-rest" placeholder="60">
+      </div>
+    </div>
+
+    <!-- AI IMAGE DESCRIPTION -->
+    <div class="ai-img-section">
+      <h5 class="ai-img-title">🎨 IMAGEN IA DEL EJERCICIO</h5>
+      <textarea id="pex-img-desc" class="msg-area" style="min-height:60px" placeholder="Describe la imagen que quieres generar. Ej: Hombre musculoso haciendo press de banca con barra, estilo anime épico, fondo oscuro con destellos dorados..."></textarea>
+      <button class="btn-ghost" id="pex-gen-btn" onclick="App.genExerciseImage()">🎨 GENERAR IMAGEN</button>
+      <div id="pex-img-preview" class="ai-preview hidden">
+        <img id="pex-img-result" src="" alt="">
+      </div>
+    </div>
+
+    <button class="btn-gold" onclick="App.confirmPickerEx()">✅ AGREGAR</button>
+  </div>
+</div>
+
+<!-- CREATE CHALLENGE (mejorado con 2 campos de descripción) -->
 <div id="modal-challenge" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3>CREAR RETO</h3><button onclick="App.closeModal('modal-challenge')">✕</button></div>
-    <div class="field"><span>🎯</span><input id="ch-name" type="text" placeholder="Nombre del reto (ej: Thanos Junior)"></div>
-    <div class="field"><span>📝</span><input id="ch-desc" type="text" placeholder="Descripción (ej: Press banca 100kg)"></div>
-    <div class="field"><span>🏆</span><input id="ch-reward" type="text" placeholder="Recompensa (ej: 500 XP)"></div>
+    <div class="field"><span>🏆</span><input id="ch-name" type="text" placeholder="Nombre del reto (ej: Thanos Junior)"></div>
+    <div class="field"><span>📝</span><input id="ch-desc" type="text" placeholder="Descripción (ej: Levanta 100kg en press de banca)"></div>
+    <div class="field"><span>🎁</span><input id="ch-reward" type="text" placeholder="Recompensa (ej: 500 XP)"></div>
     <div class="field"><span>🎮</span>
       <select id="ch-type"><option value="sessions_week">Sesiones esta semana</option><option value="total_volume">Volumen total kg</option><option value="streak">Días seguidos</option><option value="logged_sets">Series registradas</option><option value="custom">Logro personalizado</option></select>
     </div>
-    <div class="field"><span>🔢</span><input id="ch-target" type="number" placeholder="Meta (número)"></div>
-    <div class="ch-img-preview hidden" id="ch-img-preview">
-      <p style="font-size:11px;color:var(--gold);font-family:var(--ft);letter-spacing:1px;margin-bottom:8px">🎨 IMAGEN GENERADA POR IA</p>
-      <div id="ch-img-container" class="ch-img-container"></div>
+    <div class="field"><span>🔢</span><input id="ch-target" type="number" placeholder="Meta numérica"></div>
+
+    <!-- IMAGE DESCRIPTION FIELD -->
+    <div class="ai-img-section">
+      <h5 class="ai-img-title">🎨 DESCRIPCIÓN DE IMAGEN IA</h5>
+      <p class="ai-img-hint">Describe exactamente la imagen que quieres para este reto</p>
+      <textarea id="ch-img-desc" class="msg-area" style="min-height:70px" placeholder="Ej: Thanos bebé en pañales levantando una barra olímpica, estilo comic Marvel, colores vibrantes, fondo con estrellas, expresión graciosa pero épica..."></textarea>
+      <button class="btn-ghost" id="ch-gen-btn" onclick="App.genChallengeImage()">🎨 GENERAR IMAGEN IA</button>
+      <div id="ch-img-preview" class="ai-preview hidden">
+        <img id="ch-img-result" src="" alt="">
+        <button class="btn-sm" onclick="App.genChallengeImage()" style="margin-top:8px">↺ REGENERAR</button>
+      </div>
     </div>
-    <button class="btn-ghost" id="ch-gen-btn" onclick="App.genChallengeImage()">🎨 GENERAR IMAGEN CON IA</button>
+
     <button class="btn-gold" onclick="App.saveChallenge()">💾 GUARDAR RETO</button>
   </div>
 </div>
 
+<!-- CALCULATOR -->
 <div id="modal-calc" class="modal hidden">
   <div class="modal-card">
     <div class="modal-head"><h3 id="calc-title">CALCULADORA</h3><button onclick="App.closeModal('modal-calc')">✕</button></div>
@@ -349,15 +414,15 @@
     <div class="popup-glow"></div>
     <p class="popup-label">⚡ LOGRO DESBLOQUEADO ⚡</p>
     <div class="popup-ico" id="pop-ico">🏆</div>
+    <div id="pop-ch-img" class="pop-ch-img hidden"></div>
     <h2 class="popup-name" id="pop-name">NOMBRE</h2>
     <p class="popup-desc" id="pop-desc">Descripción</p>
-    <div id="pop-ch-img" class="pop-ch-img hidden"></div>
     <p class="popup-xp" id="pop-xp">+500 XP</p>
     <button class="btn-gold" onclick="App.closeAchPopup()">¡ÉPICO! 🦁</button>
   </div>
 </div>
 
-<!-- COACH MSG POPUP -->
+<!-- COACH MESSAGE -->
 <div id="coach-popup" class="ach-popup hidden">
   <div class="ach-popup-card" style="border-color:var(--cyan)">
     <div class="popup-glow" style="background:radial-gradient(circle,rgba(0,229,255,.12),transparent 60%)"></div>
@@ -365,6 +430,17 @@
     <div class="popup-ico">🦁</div>
     <p id="coach-msg-txt" class="popup-desc" style="font-size:15px;color:var(--white)"></p>
     <button class="btn-gold" onclick="App.closeCoachPopup()">¡ENTENDIDO!</button>
+  </div>
+</div>
+
+<!-- CIRCUIT COMPLETE POPUP -->
+<div id="circuit-popup" class="circuit-popup hidden">
+  <div class="circuit-popup-card">
+    <div class="circuit-popup-ico">🔄</div>
+    <div class="circuit-popup-title" id="cp-title">CIRCUITO 1 COMPLETO</div>
+    <div class="circuit-popup-sub" id="cp-sub">Descansando 90 segundos...</div>
+    <div class="circuit-popup-timer" id="cp-timer">90</div>
+    <button class="btn-sm" onclick="App.skipCircuitRest()">⏭ SALTAR DESCANSO</button>
   </div>
 </div>
 
