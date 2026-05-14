@@ -7,7 +7,7 @@ const COACH_USERNAME = 'coach';
 // ── IMAGE GENERATION CONFIG ──
 // Opción 1: Google Gemini (GRATIS - recomendado)
 // Obtén tu key gratis en: https://aistudio.google.com/apikey
-const GEMINI_KEY = 'YOUR_GEMINI_API_KEY';
+const GEMINI_KEY = 'AIzaSyAG9_BfKPv2SD59T2waNlY3uq1Ls_xjWhc';
 
 // Opción 2: fal.ai (alta calidad)
 // Obtén tu key en: https://fal.ai/dashboard/keys
