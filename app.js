@@ -4,194 +4,62 @@
 
 const COACH_USERNAME = 'coach';
 
-// ── FAL.AI CONFIG ──
-// Para imágenes reales: registra en fal.ai (gratis), copia tu API key aquí
+// ── IMAGE GENERATION CONFIG ──
+// Opción 1: Google Gemini (GRATIS - recomendado)
+// Obtén tu key gratis en: https://aistudio.google.com/apikey
+const GEMINI_KEY = 'YOUR_GEMINI_API_KEY';
+
+// Opción 2: fal.ai (alta calidad)
+// Obtén tu key en: https://fal.ai/dashboard/keys
 const FAL_KEY = 'YOUR_FAL_API_KEY';
-// Modelo recomendado: fal-ai/flux/schnell (rápido y gratuito)
 const FAL_MODEL = 'fal-ai/flux/schnell';
 
-// ── STATE ──
-const S = {
-  user: null, isCoach: false,
-  sessActive: false, sessStart: null, sessTimer: null,
-  restTimer: null, restSec: 60, restDur: 60, restRunning: false,
-  workLog: [], curEx: null, modalSets: [],
-  rnExs: [], pickerSelEx: null, pickerGenImg: null,
-  chGenImg: null, achGenImg: null,
-  editingChId: null, editingAchId: null,
-  circuitRestTimer: null,
-  progChart: null, volChart: null, selChartEx: 'bench_press',
-  achFilter: 'all', lbMode: 'weekly',
-  onboardSlide: 0,
-};
-
-// ── QUOTES ──
-const QUOTES = [
-  '"El dolor de hoy es la fuerza de mañana."',
-  '"No cuentes los días, haz que los días cuenten."',
-  '"El único mal entrenamiento es el que no hiciste."',
-  '"Sé la bestia que el hierro necesita."',
-  '"Un guerrero no se rinde. Se adapta."',
-  '"La disciplina hace lo que la motivación no puede."',
-  '"Los campeones no nacen, se forjan."',
-  '"El hierro no miente. Tu cuerpo tampoco."',
-  '"Sé más fuerte que tus excusas."',
-  '"Cada serie te acerca a quien quieres ser."',
-];
-
-// ── DEFAULT ACHIEVEMENTS (editable by coach) ──
-const DEFAULT_ACHS = [
-  { id:'first_session', icon:'⚡', name:'PRIMER GOLPE', desc:'Completa tu primera sesión', xp:100, rarity:'common', cat:'sessions', imageData:null },
-  { id:'ten_sessions', icon:'🔥', name:'EN LLAMAS', desc:'10 sesiones completadas', xp:250, rarity:'uncommon', cat:'sessions', imageData:null },
-  { id:'fifty_sessions', icon:'💎', name:'DIAMANTE NEGRO', desc:'50 sesiones completadas', xp:1000, rarity:'epic', cat:'sessions', imageData:null },
-  { id:'hundred_sessions', icon:'👑', name:'REY DEL DOJO', desc:'100 sesiones completadas', xp:3000, rarity:'legendary', cat:'sessions', imageData:null },
-  { id:'streak_7', icon:'🗡️', name:'SAMURAI SEMANAL', desc:'7 días seguidos', xp:300, rarity:'uncommon', cat:'streaks', imageData:null },
-  { id:'streak_30', icon:'👹', name:'DEMONIO DEL MES', desc:'30 días seguidos', xp:1500, rarity:'legendary', cat:'streaks', imageData:null },
-  { id:'bench_100', icon:'😈', name:'THANOS JUNIOR', desc:'Press de banca 100 kg', xp:500, rarity:'epic', cat:'strength', imageData:null },
-  { id:'bench_140', icon:'🦁', name:'MODO BESTIA', desc:'Press de banca 140 kg', xp:1000, rarity:'legendary', cat:'strength', imageData:null },
-  { id:'squat_100', icon:'🏋️', name:'GUERRERO DRAGÓN', desc:'Sentadilla 100 kg', xp:500, rarity:'epic', cat:'strength', imageData:null },
-  { id:'deadlift_100', icon:'⚔️', name:'COLOSO', desc:'Peso muerto 100 kg', xp:500, rarity:'epic', cat:'strength', imageData:null },
-  { id:'deadlift_200', icon:'🌠', name:'TITÁN ABSOLUTO', desc:'Peso muerto 200 kg', xp:2000, rarity:'legendary', cat:'strength', imageData:null },
-  { id:'curl_40', icon:'💪', name:'BRAZO DE ACERO', desc:'Curl bíceps 40 kg', xp:400, rarity:'epic', cat:'strength', imageData:null },
-  { id:'pullups_15', icon:'🦅', name:'ÁGUILA REAL', desc:'15 dominadas seguidas', xp:350, rarity:'epic', cat:'strength', imageData:null },
-  { id:'cardio_30', icon:'🎽', name:'CORAZÓN DE FUEGO', desc:'30 min continuos de cardio', xp:200, rarity:'uncommon', cat:'cardio', imageData:null },
-  { id:'volume_10k', icon:'📦', name:'REY DEL VOLUMEN', desc:'10,000 kg en una sesión', xp:600, rarity:'epic', cat:'volume', imageData:null },
-  { id:'early_bird', icon:'🌅', name:'MADRUGADOR BESTIAL', desc:'Entrena antes de las 6am', xp:200, rarity:'uncommon', cat:'special', imageData:null },
-  { id:'night_owl', icon:'🦉', name:'LOBO NOCTURNO', desc:'Entrena después de las 10pm', xp:200, rarity:'uncommon', cat:'special', imageData:null },
-  { id:'level_5', icon:'⬆️', name:'GUERRERO LV5', desc:'Alcanza el nivel 5', xp:500, rarity:'uncommon', cat:'progression', imageData:null },
-  { id:'level_10', icon:'🔱', name:'MAESTRO LV10', desc:'Alcanza el nivel 10', xp:1000, rarity:'epic', cat:'progression', imageData:null },
-];
-
-// ── EXERCISE DB ──
-const EX_DB = [
-  { id:'bench_press', name:'Press de Banca', muscle:'chest', equip:'barbell', emoji:'🏋️', diff:'intermediate', inst:'Acuéstate, agarra la barra más ancho que los hombros. Baja controlado al pecho, empuja explosivo. Escápulas retraídas siempre.', track:'bench_press' },
-  { id:'incline_press', name:'Press Inclinado', muscle:'chest', equip:'barbell', emoji:'💪', diff:'intermediate', inst:'Banco a 30-45°. Mismo movimiento que press plano, enfoca el pecho superior.', track:null },
-  { id:'dumbbell_fly', name:'Aperturas con Mancuernas', muscle:'chest', equip:'dumbbell', emoji:'🦅', diff:'beginner', inst:'Brazos ligeramente flexionados, abre en arco amplio sintiendo el estiramiento del pecho.', track:null },
-  { id:'pushup', name:'Flexiones', muscle:'chest', equip:'bodyweight', emoji:'🤸', diff:'beginner', inst:'Manos al ancho de hombros, cuerpo recto. Baja el pecho al suelo, empuja arriba completamente.', track:null },
-  { id:'cable_fly', name:'Cruces en Polea', muscle:'chest', equip:'cable', emoji:'⚡', diff:'intermediate', inst:'Desde poleas altas, junta las manos frente al pecho con contracción máxima.', track:null },
-  { id:'deadlift', name:'Peso Muerto', muscle:'back', equip:'barbell', emoji:'🌋', diff:'advanced', inst:'Pies al ancho de cadera, barra sobre el metatarso. Espalda neutral, empuja el suelo. El rey de los ejercicios.', track:'deadlift' },
-  { id:'pullup', name:'Dominadas', muscle:'back', equip:'bodyweight', emoji:'🦅', diff:'intermediate', inst:'Agarre prono más ancho que hombros. Lleva el pecho a la barra, baja completamente controlado.', track:'pullups' },
-  { id:'bent_row', name:'Remo con Barra', muscle:'back', equip:'barbell', emoji:'⚓', diff:'intermediate', inst:'Torso 45°, barra a los abdominales. Codos hacia atrás, contrae las escápulas.', track:null },
-  { id:'lat_pulldown', name:'Jalón al Pecho', muscle:'back', equip:'cable', emoji:'🎯', diff:'beginner', inst:'Jala la barra al pecho superior, codos al suelo. Pecho alto durante todo el movimiento.', track:null },
-  { id:'seated_row', name:'Remo Sentado Polea', muscle:'back', equip:'cable', emoji:'🚣', diff:'beginner', inst:'Espalda recta, jala hacia el ombligo. Contrae la espalda en cada repetición.', track:null },
-  { id:'ohp', name:'Press Militar', muscle:'shoulders', equip:'barbell', emoji:'🗡️', diff:'intermediate', inst:'De pie o sentado, empuja la barra por encima de la cabeza hasta extender completamente.', track:null },
-  { id:'lateral_raise', name:'Elevaciones Laterales', muscle:'shoulders', equip:'dumbbell', emoji:'✈️', diff:'beginner', inst:'Eleva los brazos lateralmente hasta la altura de hombros, codo ligeramente flexionado.', track:null },
-  { id:'face_pull', name:'Face Pull', muscle:'shoulders', equip:'cable', emoji:'🎯', diff:'beginner', inst:'Polea alta, jala hacia la cara abriendo los codos. Clave para la salud del hombro.', track:null },
-  { id:'barbell_curl', name:'Curl con Barra', muscle:'biceps', equip:'barbell', emoji:'💪', diff:'beginner', inst:'Codos pegados al torso, curla la barra hasta contraer el bíceps completamente. Baja controlado.', track:'bicep_curl' },
-  { id:'hammer_curl', name:'Curl Martillo', muscle:'biceps', equip:'dumbbell', emoji:'🔨', diff:'beginner', inst:'Agarre neutro, curla hasta el hombro. Trabaja braquial y braquiorradial.', track:null },
-  { id:'incline_curl', name:'Curl Inclinado', muscle:'biceps', equip:'dumbbell', emoji:'🌟', diff:'intermediate', inst:'En banco inclinado, brazos colgando. Mayor estiramiento del bíceps en cada repetición.', track:null },
-  { id:'skull_crusher', name:'Skull Crusher', muscle:'triceps', equip:'barbell', emoji:'💀', diff:'intermediate', inst:'Acostado, baja la barra a la frente flexionando solo los codos. Extiende explosivo.', track:null },
-  { id:'tricep_dip', name:'Fondos para Tríceps', muscle:'triceps', equip:'bodyweight', emoji:'⬇️', diff:'intermediate', inst:'En paralelas, baja hasta 90° de codo. Empuja arriba contrayendo el tríceps.', track:null },
-  { id:'tricep_pushdown', name:'Extensión Tríceps Polea', muscle:'triceps', equip:'cable', emoji:'⚡', diff:'beginner', inst:'Codos pegados, empuja hasta extensión completa. Contrae fuerte el tríceps.', track:null },
-  { id:'squat', name:'Sentadilla', muscle:'legs', equip:'barbell', emoji:'🏋️', diff:'intermediate', inst:'Barra en trapecios, pies al ancho de hombros. Baja a paralelo o más abajo, rodillas siguiendo los pies.', track:'squat' },
-  { id:'leg_press', name:'Prensa de Piernas', muscle:'legs', equip:'machine', emoji:'🦵', diff:'beginner', inst:'Pies al ancho de hombros. Baja controlado sin bloquear completamente la rodilla.', track:null },
-  { id:'romanian_dl', name:'Peso Muerto Rumano', muscle:'legs', equip:'barbell', emoji:'🧲', diff:'intermediate', inst:'Bisagra de cadera, baja la barra por las piernas sintiendo el isquiotibial.', track:null },
-  { id:'lunges', name:'Zancadas', muscle:'legs', equip:'dumbbell', emoji:'🚶', diff:'beginner', inst:'Paso adelante, rodilla trasera casi toca el suelo. Torso erguido.', track:null },
-  { id:'leg_curl', name:'Curl Femoral', muscle:'legs', equip:'machine', emoji:'🔩', diff:'beginner', inst:'En la máquina, jala el peso con los isquiotibiales. Controla la bajada.', track:null },
-  { id:'calf_raise', name:'Elevaciones de Talones', muscle:'legs', equip:'machine', emoji:'👟', diff:'beginner', inst:'Sube en punta de pies, mantén 1 segundo arriba. Baja con control total.', track:null },
-  { id:'plank', name:'Plancha', muscle:'core', equip:'bodyweight', emoji:'🧱', diff:'beginner', inst:'Cuerpo recto en antebrazos y pies. Aprieta abdomen y glúteos todo el tiempo.', track:null },
-  { id:'crunch', name:'Abdominales', muscle:'core', equip:'bodyweight', emoji:'🎯', diff:'beginner', inst:'Manos en la nuca, curva el tronco contrayendo el abdomen. No jales el cuello.', track:null },
-  { id:'hanging_lr', name:'Elevación Piernas Colgado', muscle:'core', equip:'bodyweight', emoji:'🏋️', diff:'advanced', inst:'Colgado de la barra, eleva las piernas a 90° o más. Controla la bajada.', track:null },
-  { id:'cable_crunch', name:'Crunch en Polea', muscle:'core', equip:'cable', emoji:'⚡', diff:'intermediate', inst:'De rodillas, jala la cuerda flexionando el torso. Contrae el abdomen al final.', track:null },
-];
-
-const MUSCLES = ['all','chest','back','shoulders','biceps','triceps','legs','core'];
-const ML = { all:'Todos', chest:'Pecho', back:'Espalda', shoulders:'Hombros', biceps:'Bíceps', triceps:'Tríceps', legs:'Piernas', core:'Core' };
-const EQL = { barbell:'Barra', dumbbell:'Mancuerna', cable:'Polea', machine:'Máquina', bodyweight:'Peso Corporal' };
-const DFL = { beginner:'⭐ Principiante', intermediate:'⭐⭐ Intermedio', advanced:'⭐⭐⭐ Avanzado' };
-const DAL = { monday:'Lunes', tuesday:'Martes', wednesday:'Miércoles', thursday:'Jueves', friday:'Viernes', saturday:'Sábado', sunday:'Domingo', any:'Cualquier día' };
-const GL = { strength:'⚡ Fuerza', hypertrophy:'💪 Masa', weightloss:'🔥 Definir', endurance:'🏃 Resistencia', athletic:'🏆 Atlético' };
-const RC = { common:'#9e9e9e', uncommon:'#4caf50', epic:'#9c27b0', legendary:'#ff6f00' };
-const RL = { common:'COMÚN', uncommon:'INUSUAL', epic:'ÉPICO', legendary:'LEGENDARIO' };
-const ACH_CATS = ['all','sessions','streaks','strength','cardio','volume','special','progression'];
-const ACH_CAT_L = { all:'Todos', sessions:'Sesiones', streaks:'Rachas', strength:'Fuerza', cardio:'Cardio', volume:'Volumen', special:'Especiales', progression:'Nivel' };
-const TITLES = ['⚔️ NOVATO','🔥 GUERRERO','💪 VETERANO','🦁 BESTIA','👹 DEMONIO','🐉 MAESTRO','⚡ LEYENDA','👑 DIOS DEL HIERRO'];
-
-// ── HELPERS ──
-const $ = id => document.getElementById(id);
-const v = id => $(id)?.value?.trim() || '';
-const pad = n => String(n).padStart(2,'0');
-const getUsers = () => JSON.parse(localStorage.getItem('cl_users') || '[]');
-const saveUsers = u => localStorage.setItem('cl_users', JSON.stringify(u));
-const getRoutines = (uid) => JSON.parse(localStorage.getItem('cl_rt_' + (uid || S.user?.id || '')) || '[]');
-const saveRoutines = (r, uid) => localStorage.setItem('cl_rt_' + (uid || S.user?.id || ''), JSON.stringify(r));
-const getChallenges = () => JSON.parse(localStorage.getItem('cl_ch_global') || '[]');
-const saveChallenges = c => localStorage.setItem('cl_ch_global', JSON.stringify(c));
-const getAchs = () => JSON.parse(localStorage.getItem('cl_achs_global') || JSON.stringify(DEFAULT_ACHS));
-const saveAchs = a => localStorage.setItem('cl_achs_global', JSON.stringify(a));
-
-function toast(msg) {
-  document.querySelector('.cl-t')?.remove();
-  const t = document.createElement('div');
-  t.className = 'cl-t';
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:calc(var(--nav) + 12px);left:50%;transform:translateX(-50%);background:var(--d3);border:1px solid var(--borderb);color:var(--white);padding:10px 16px;border-radius:11px;font-family:var(--fu);font-size:13px;font-weight:600;z-index:9999;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 28px rgba(0,0,0,.5)';
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3000);
-}
-
-// ── LION ROAR SOUND ──
-function playRoar() {
+// ── GEMINI IMAGE GENERATION ──
+async function generateImageGemini(prompt) {
+  if (!GEMINI_KEY || GEMINI_KEY === 'YOUR_GEMINI_API_KEY') return null;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
-  } catch(e) {}
+    const enhancedPrompt = `${prompt}. Style: vibrant comic book art, Marvel/DC anime fusion, bold colors, dynamic composition, dramatic lighting, halftone dots, strong black outlines, dark background with gold accents, fitness achievement themed illustration, epic action scene, no text overlay`;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: enhancedPrompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+        })
+      }
+    );
+    if (!res.ok) { console.warn('Gemini error:', res.status); return null; }
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+    if (!imgPart?.inlineData?.data) return null;
+    return `data:${imgPart.inlineData.mimeType};base64,${imgPart.inlineData.data}`;
+  } catch(e) { console.warn('Gemini failed:', e.message); return null; }
 }
 
 // ── FAL.AI IMAGE GENERATION ──
 async function generateImageFal(prompt) {
+  if (!FAL_KEY || FAL_KEY === 'YOUR_FAL_API_KEY') return null;
   try {
-    // Enhanced prompt for comic/anime style
     const enhancedPrompt = `${prompt}, comic book art style, anime influences, Marvel DC comics aesthetic, bold colors, dynamic composition, dramatic lighting, halftone dot pattern, strong black outlines, vibrant colors, epic action pose, dark background with gold accents, fitness themed`;
-
     const res = await fetch(`https://fal.run/${FAL_MODEL}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: enhancedPrompt,
-        image_size: 'square',
-        num_inference_steps: 4,
-        num_images: 1,
-        enable_safety_checker: false,
-      })
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: enhancedPrompt, image_size: 'square', num_inference_steps: 4, num_images: 1, enable_safety_checker: false })
     });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.warn('Fal.ai error:', err);
-      return null;
-    }
-
+    if (!res.ok) { console.warn('Fal.ai error:', res.status); return null; }
     const data = await res.json();
     const imageUrl = data?.images?.[0]?.url;
     if (!imageUrl) return null;
-
-    // Convert URL to base64 for local storage
     const imgRes = await fetch(imageUrl);
     const blob = await imgRes.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  } catch(e) {
-    console.warn('Image generation failed:', e.message);
-    return null;
-  }
+    return new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(blob); });
+  } catch(e) { console.warn('Fal.ai failed:', e.message); return null; }
 }
 
-// ── FALLBACK SVG GENERATOR ──
+// ── FALLBACK SVG ──
 function fallbackSVG(name, icon) {
   const icons = ['💪','🏆','🔥','⚡','🦁','👹','🐉','⚔️','🌟','👑','😈','🦅','💀','🌋'];
   const ic = icon || icons[Math.floor(Math.random() * icons.length)];
@@ -222,15 +90,18 @@ function fallbackSVG(name, icon) {
   return URL.createObjectURL(blob);
 }
 
-// ── MAIN AI IMAGE FUNCTION ──
+// ── MAIN AI IMAGE FUNCTION (Gemini → fal.ai → SVG fallback) ──
 async function generateAIImage(prompt, name, icon) {
-  if (FAL_KEY && FAL_KEY !== 'YOUR_FAL_API_KEY') {
-    const result = await generateImageFal(prompt);
-    if (result) return result;
-  }
-  // Fallback to SVG if no key or error
+  // Try Gemini first (free)
+  const gemResult = await generateImageGemini(prompt);
+  if (gemResult) return gemResult;
+  // Try fal.ai second
+  const falResult = await generateImageFal(prompt);
+  if (falResult) return falResult;
+  // Fallback to generated SVG
   return fallbackSVG(name, icon);
 }
+
 
 // ═══════════════════════════════════════
 const App = {
@@ -348,17 +219,42 @@ const App = {
       achievements: [], workoutHistory: [], records: {},
       coachMessages: [], totalVolume: 0, created: new Date().toISOString()
     };
-    users.push(user); saveUsers(users);
-    S.user = user; localStorage.setItem('cl_user', JSON.stringify(user));
-    this.enterApp();
-    setTimeout(() => this.showAchPopup({ icon:'🦁', name:'¡BIENVENIDO!', desc:`Perfil @${u} creado. ¡La bestia despierta!`, xp:50 }), 800);
+    // Hash password before saving
+    hashPassword(p).then(hashed => {
+      user.password = hashed;
+      users.push(user); saveUsers(users);
+      S.user = user; localStorage.setItem('cl_user', JSON.stringify(user));
+      this.enterApp();
+      setTimeout(() => this.showAchPopup({ icon:'🦁', name:'¡BIENVENIDO!', desc:`Perfil @${u} creado. ¡La bestia despierta!`, xp:50 }), 800);
+    });
+    return;
   },
 
   login() {
     const u = v('l-user'), p = v('l-pass');
-    const user = getUsers().find(x => x.username === u && x.password === p);
-    if (!user) return toast('Usuario o contraseña incorrectos');
-    S.user = user; localStorage.setItem('cl_user', JSON.stringify(user)); this.enterApp();
+    const allUsers = getUsers();
+    const userByName = allUsers.find(x => x.username === u);
+    if (!userByName) return toast('Usuario o contraseña incorrectos');
+    // Support both legacy plain-text and new hashed passwords
+    const isLegacy = userByName.password === p;
+    const checkHash = isLegacy ? Promise.resolve(true) : verifyPassword(p, userByName.password);
+    checkHash.then(valid => {
+      if (!valid) return toast('Usuario o contraseña incorrectos');
+      // Migrate legacy plain-text to hash
+      if (isLegacy) {
+        hashPassword(p).then(hashed => {
+          userByName.password = hashed;
+          const users = getUsers();
+          const i = users.findIndex(x=>x.id===userByName.id);
+          if (i!==-1) users[i]=userByName;
+          saveUsers(users);
+        });
+      }
+      S.user = userByName; localStorage.setItem('cl_user', JSON.stringify(userByName)); this.enterApp();
+    });
+    return;
+    const user = null; // unreachable - kept for structure
+
   },
 
   async biometricLogin() {
@@ -1103,7 +999,7 @@ const App = {
   // ── PHOTOS ──
   addPhoto() {
     const inp = document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='user';
-    inp.onchange = e => { const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]'); ph.push({date:new Date().toISOString(),src:ev.target.result}); localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph)); this.renderPhotos(); toast('📸 Foto guardada'); }; rd.readAsDataURL(f); };
+    inp.onchange = e => { const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=ev=>{ compressImage(ev.target.result, 600, 0.75).then(compressed => { const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]'); ph.push({date:new Date().toISOString(),src:compressed}); localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph)); this.renderPhotos(); toast('📸 Foto guardada y comprimida'); }); }; rd.readAsDataURL(f); };
     inp.click();
   },
   renderPhotos() {
