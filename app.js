@@ -11,7 +11,7 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ── IMAGE AI CONFIG ──
 // Tu key de Gemini va aquí (la que ya tenías)
-const GEMINI_KEY = 'YOUR_GEMINI_API_KEY';
+const GEMINI_KEY = 'AIzaSyAG9_BfKPv2SD59T2waNlY3uq1Ls_xjWhc';
 const FAL_KEY    = 'YOUR_FAL_API_KEY';
 const FAL_MODEL  = 'fal-ai/flux/schnell';
 
