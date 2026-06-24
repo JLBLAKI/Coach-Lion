@@ -263,6 +263,16 @@
       </div>
     </div>
 
+    <!-- RECIPES -->
+    <div id="page-recipes" class="page">
+      <div class="scroll">
+        <div class="sec-row"><h2 class="page-title">🥗 RECETAS</h2><button class="btn-sm coach-only hidden" id="recipe-add-btn" onclick="App.openCreateRecipe()">+ NUEVA</button></div>
+        <p class="page-sub">Comidas fáciles y rápidas para tu plan fitness</p>
+        <div id="recipe-filters" class="ach-filters"></div>
+        <div id="recipes-list" class="recipes-list"></div>
+      </div>
+    </div>
+
     <!-- COACH -->
     <div id="page-coach" class="page">
       <div class="scroll">
@@ -273,8 +283,15 @@
           <button class="ctab" onclick="App.coachTab('challenges',this)">🎯 Retos</button>
           <button class="ctab" onclick="App.coachTab('achievements',this)">🏆 Logros</button>
           <button class="ctab" onclick="App.coachTab('messages',this)">💬 Mensajes</button>
+          <button class="ctab" onclick="App.coachTab('recipes',this)">🥗 Recetas</button>
         </div>
-        <div id="ct-athletes" class="ctab-body"><div id="athletes-list" class="athletes-list"></div></div>
+
+        <!-- Atletas -->
+        <div id="ct-athletes" class="ctab-body">
+          <div id="athletes-list" class="athletes-list"></div>
+        </div>
+
+        <!-- Rutinas -->
         <div id="ct-routines" class="ctab-body hidden">
           <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateRoutine()">+ CREAR RUTINA</button>
           <div id="coach-routines-list" class="routines-list"></div>
@@ -285,14 +302,20 @@
             <button class="btn-gold" onclick="App.assignRoutine()">📤 ASIGNAR</button>
           </div>
         </div>
+
+        <!-- Retos -->
         <div id="ct-challenges" class="ctab-body hidden">
           <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateChallenge()">+ CREAR RETO</button>
           <div id="coach-challenges-list" class="challenges-list"></div>
         </div>
+
+        <!-- Logros -->
         <div id="ct-achievements" class="ctab-body hidden">
           <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateAchievement()">+ CREAR LOGRO</button>
           <div id="coach-achievements-list" class="coach-ach-list"></div>
         </div>
+
+        <!-- Mensajes -->
         <div id="ct-messages" class="ctab-body hidden">
           <div class="card" style="gap:10px">
             <div class="field"><span>👤</span><select id="msg-user"><option value="">Atleta...</option></select></div>
@@ -302,6 +325,13 @@
           <div class="sec-row" style="margin-top:12px"><h3 class="sec-title">ENVIADOS</h3></div>
           <div id="sent-msgs" class="sent-msgs"></div>
         </div>
+
+        <!-- Recetas (Coach) -->
+        <div id="ct-recipes" class="ctab-body hidden">
+          <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateRecipe()">+ CREAR RECETA</button>
+          <div id="coach-recipes-list" class="recipes-list"></div>
+        </div>
+
       </div>
     </div>
 
@@ -311,7 +341,7 @@
     <button class="nb active" onclick="App.goTo('home')" data-p="home"><span>🏠</span><span>INICIO</span></button>
     <button class="nb" onclick="App.goTo('workout')" data-p="workout"><span>⚡</span><span>ENTRENA</span></button>
     <button class="nb" onclick="App.goTo('routines')" data-p="routines"><span>📋</span><span>RUTINAS</span></button>
-    <button class="nb" onclick="App.goTo('progress')" data-p="progress"><span>📈</span><span>PROGRESO</span></button>
+    <button class="nb" onclick="App.goTo('recipes')" data-p="recipes"><span>🥗</span><span>RECETAS</span></button>
     <button class="nb" onclick="App.goTo('achievements')" data-p="achievements"><span>🏆</span><span>LOGROS</span></button>
   </nav>
 </div>
@@ -385,29 +415,6 @@
       <div id="pex-img-preview" class="ai-preview hidden"></div>
     </div>
     <button class="btn-gold" onclick="App.confirmPickerEx()">✅ AGREGAR</button>
-  </div>
-</div>
-
-<!-- CREATE CHALLENGE -->
-<div id="modal-challenge" class="modal hidden">
-  <div class="modal-card">
-    <div class="modal-head"><h3 id="ch-modal-title">CREAR RETO</h3><button onclick="App.closeModal('modal-challenge')">✕</button></div>
-    <div class="field"><span>🏆</span><input id="ch-name" type="text" placeholder="Nombre del reto (ej: Thanos Junior)"></div>
-    <div class="field"><span>📝</span><input id="ch-desc" type="text" placeholder="Descripción (ej: Levanta 100kg en press de banca)"></div>
-    <div class="field"><span>🎁</span><input id="ch-reward" type="text" placeholder="Recompensa (ej: 500 XP)"></div>
-    <div class="field"><span>🎮</span>
-      <select id="ch-type"><option value="sessions_week">Sesiones esta semana</option><option value="total_volume">Volumen total kg</option><option value="streak">Días seguidos</option><option value="logged_sets">Series registradas</option><option value="custom">Logro personalizado</option></select>
-    </div>
-    <div class="field"><span>🔢</span><input id="ch-target" type="number" placeholder="Meta numérica"></div>
-    <div class="ai-img-section">
-      <h5 class="ai-img-title">🎨 DESCRIPCIÓN DE IMAGEN IA</h5>
-      <p class="ai-img-hint">Describe exactamente qué imagen quieres generar con IA</p>
-      <textarea id="ch-img-desc" class="msg-area" style="min-height:65px" placeholder="Ej: Thanos bebé en pañales levantando una barra olímpica, estilo comic Marvel, colores vibrantes, expresión graciosa pero épica, fondo con estrellas..."></textarea>
-      <button class="btn-ghost" id="ch-gen-btn" onclick="App.genChallengeImage()">🎨 GENERAR CON IA</button>
-      <div id="ch-img-preview" class="ai-preview hidden"></div>
-    </div>
-    <input type="hidden" id="ch-edit-id">
-    <button class="btn-gold" onclick="App.saveChallenge()">💾 GUARDAR RETO</button>
   </div>
 </div>
 
@@ -493,6 +500,113 @@
   <p>⚡ Activa notificaciones para el timer</p>
   <button onclick="App.reqNotif()">ACTIVAR</button>
   <button onclick="App.dimNotif()">✕</button>
+</div>
+
+<!-- CHALLENGE MODAL — extended fields -->
+<div id="modal-challenge" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="ch-modal-title">CREAR RETO</h3><button onclick="App.closeModal('modal-challenge')">✕</button></div>
+    <div class="field"><span>🏆</span><input id="ch-name" type="text" placeholder="Nombre del reto (ej: Thanos Junior)"></div>
+    <div class="field"><span>📝</span><input id="ch-desc" type="text" placeholder="Descripción breve"></div>
+    <div class="field"><span>🎁</span><input id="ch-reward" type="text" placeholder="Recompensa (ej: 500 XP + Badge)"></div>
+    <div class="field"><span>🎮</span>
+      <select id="ch-type"><option value="sessions_week">Sesiones esta semana</option><option value="total_volume">Volumen total kg</option><option value="streak">Días seguidos</option><option value="logged_sets">Series registradas</option><option value="custom">Logro personalizado</option></select>
+    </div>
+    <div class="field"><span>🔢</span><input id="ch-target" type="number" placeholder="Meta numérica"></div>
+    <div class="field"><span>🔥</span>
+      <select id="ch-difficulty"><option value="easy">Fácil</option><option value="medium">Moderado</option><option value="hard">Difícil</option><option value="extreme">Extremo</option></select>
+    </div>
+    <div class="field"><span>📅</span><input id="ch-duration" type="number" placeholder="Duración (días)" value="30"></div>
+    <div class="field"><span>⭐</span><input id="ch-xp-reward" type="number" placeholder="XP al completar" value="100"></div>
+    <div class="ai-img-section">
+      <h5 class="ai-img-title">🎨 IMAGEN IA DEL RETO</h5>
+      <p class="ai-img-hint">Describe la imagen que quieres generar</p>
+      <textarea id="ch-img-desc" class="msg-area" style="min-height:65px" placeholder="Ej: Thanos bebé levantando pesas, estilo comic Marvel, colores épicos..."></textarea>
+      <button class="btn-ghost" id="ch-gen-btn" onclick="App.genChallengeImage()">🎨 GENERAR CON IA</button>
+      <div id="ch-img-preview" class="ai-preview hidden"></div>
+    </div>
+    <input type="hidden" id="ch-edit-id">
+    <button class="btn-gold" onclick="App.saveChallenge()">💾 GUARDAR RETO</button>
+  </div>
+</div>
+
+<!-- RECIPE VIEW (usuarios solo ven) -->
+<div id="modal-recipe-view" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>🥗 RECETA</h3><button onclick="App.closeModal('modal-recipe-view')">✕</button></div>
+    <div id="recipe-view-content"></div>
+  </div>
+</div>
+
+<!-- RECIPE CREATE (solo coach) -->
+<div id="modal-recipe-create" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="recipe-modal-title">NUEVA RECETA</h3><button onclick="App.closeModal('modal-recipe-create')">✕</button></div>
+    <div class="ai-img-section" style="margin-bottom:4px">
+      <h5 class="ai-img-title">🤖 GENERAR RECETA CON IA</h5>
+      <p class="ai-img-hint">Describe qué receta quieres y la IA la completa automáticamente</p>
+      <textarea id="recipe-ai-prompt" class="msg-area" style="min-height:60px" placeholder="Ej: Bowl de pollo con arroz integral alto en proteína, listo en 20 min..."></textarea>
+      <button class="btn-ghost" id="recipe-ai-btn" onclick="App.genRecipeWithAI()">🤖 GENERAR CON IA</button>
+    </div>
+    <div class="field"><span>🍽️</span><input id="recipe-name" type="text" placeholder="Nombre de la receta"></div>
+    <div class="field"><span>📂</span>
+      <select id="recipe-category">
+        <option value="desayuno">☀️ Desayuno</option>
+        <option value="almuerzo">🌞 Almuerzo</option>
+        <option value="cena">🌙 Cena</option>
+        <option value="snack">⚡ Snack</option>
+        <option value="suplemento">💊 Suplemento</option>
+      </select>
+    </div>
+    <div class="field"><span>📝</span><input id="recipe-desc" type="text" placeholder="Descripción breve"></div>
+    <div class="ex-fields-grid">
+      <div class="ex-field-item"><label>⏱️ Tiempo (min)</label><input type="number" id="recipe-prep-time" value="15"></div>
+      <div class="ex-field-item"><label>🎯 Dificultad</label>
+        <select id="recipe-difficulty" style="background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:15px;font-weight:700;padding:10px;outline:none;width:100%">
+          <option value="easy">Fácil</option><option value="medium">Moderado</option><option value="hard">Difícil</option>
+        </select>
+      </div>
+      <div class="ex-field-item"><label>🔥 Calorías</label><input type="number" id="recipe-calories" placeholder="kcal"></div>
+      <div class="ex-field-item"><label>🥩 Proteína (g)</label><input type="number" id="recipe-protein" placeholder="g"></div>
+      <div class="ex-field-item"><label>🍚 Carbos (g)</label><input type="number" id="recipe-carbs" placeholder="g"></div>
+      <div class="ex-field-item"><label>🥑 Grasa (g)</label><input type="number" id="recipe-fat" placeholder="g"></div>
+    </div>
+    <div>
+      <label style="font-family:var(--ft);font-size:9px;color:var(--gold);letter-spacing:1px;display:block;margin-bottom:5px">🧾 INGREDIENTES (uno por línea)</label>
+      <textarea id="recipe-ingredients" class="msg-area" style="min-height:90px" placeholder="150g pecho de pollo&#10;1 taza arroz integral&#10;1 cdta aceite de oliva"></textarea>
+    </div>
+    <div>
+      <label style="font-family:var(--ft);font-size:9px;color:var(--gold);letter-spacing:1px;display:block;margin-bottom:5px">📋 PASOS DE PREPARACIÓN (uno por línea)</label>
+      <textarea id="recipe-steps" class="msg-area" style="min-height:90px" placeholder="Cocina el arroz durante 20 minutos&#10;Sazona el pollo con especias&#10;Grill por 6 min cada lado"></textarea>
+    </div>
+    <div class="field"><span>🏷️</span><input id="recipe-tags" type="text" placeholder="Tags (ej: alto en proteína, sin gluten)"></div>
+    <div class="ai-img-section">
+      <h5 class="ai-img-title">🎨 IMAGEN DE LA RECETA</h5>
+      <button class="btn-ghost" id="recipe-img-btn" onclick="App.genRecipeImage()">🎨 GENERAR IMAGEN CON IA</button>
+      <div id="recipe-img-preview" class="ai-preview hidden"></div>
+    </div>
+    <button class="btn-gold" onclick="App.saveRecipe()">💾 GUARDAR RECETA</button>
+  </div>
+</div>
+
+<!-- iOS INSTALL GUIDE -->
+<div id="modal-ios-install" class="modal hidden">
+  <div class="modal-card" style="text-align:center">
+    <div class="modal-head"><h3>📲 INSTALAR APP</h3><button onclick="App.closeModal('modal-ios-install')">✕</button></div>
+    <div style="font-size:42px;margin:10px 0">🦁</div>
+    <p style="font-size:15px;font-weight:700;color:var(--gold);margin-bottom:8px">AÑADIR A PANTALLA DE INICIO</p>
+    <div style="background:var(--d3);border-radius:11px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px"><span style="font-size:22px">1️⃣</span><span>Toca el botón <strong style="color:var(--gold)">Compartir</strong> (📤) en la barra de Safari</span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px"><span style="font-size:22px">2️⃣</span><span>Desliza hacia abajo y toca <strong style="color:var(--gold)">"Añadir a pantalla de inicio"</strong></span></div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px"><span style="font-size:22px">3️⃣</span><span>Toca <strong style="color:var(--gold)">Añadir</strong> — Coach Lion aparecerá en tu pantalla de inicio</span></div>
+    </div>
+    <button class="btn-gold" style="margin-top:14px" onclick="App.closeModal('modal-ios-install')">¡ENTENDIDO! 🦁</button>
+  </div>
+</div>
+
+<!-- INSTALL FLOATING BUTTON -->
+<div id="install-btn" class="install-fab hidden" onclick="App.triggerInstall()">
+  <span>📲</span><span>INSTALAR APP</span>
 </div>
 
 <script src="app.js"></script>

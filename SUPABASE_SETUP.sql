@@ -269,8 +269,50 @@ INSERT INTO public.achievement_definitions (id, name, description, xp, rarity, c
 ON CONFLICT (id) DO NOTHING;
 
 
+-- ══════════════════════════════
+-- 8. TABLA DE RECETAS (creadas por el coach)
+-- ══════════════════════════════
+CREATE TABLE IF NOT EXISTS public.recipes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name        TEXT NOT NULL,
+  category    TEXT DEFAULT 'almuerzo',
+  description TEXT,
+  prep_time   INTEGER DEFAULT 15,
+  difficulty  TEXT DEFAULT 'easy',
+  calories    INTEGER,
+  protein     DECIMAL(6,1),
+  carbs       DECIMAL(6,1),
+  fat         DECIMAL(6,1),
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  steps       JSONB DEFAULT '[]'::jsonb,
+  tags        JSONB DEFAULT '[]'::jsonb,
+  image_data  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.recipes ENABLE ROW LEVEL SECURITY;
+
+-- Todos los usuarios pueden VER recetas
+CREATE POLICY "recipes_select_all" ON public.recipes
+  FOR SELECT USING (true);
+
+-- Solo el coach puede crear/editar/eliminar recetas
+CREATE POLICY "recipes_modify_coach" ON public.recipes
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND username = 'coach')
+  );
+
+CREATE INDEX IF NOT EXISTS idx_recipes_category ON public.recipes(category);
+CREATE INDEX IF NOT EXISTS idx_recipes_created ON public.recipes(created_at DESC);
+
+CREATE TRIGGER recipes_updated_at
+  BEFORE UPDATE ON public.recipes
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+
 -- ═══════════════════════════════════════════════════
--- VERIFICACIÓN: Confirmar que todo se creó bien
+-- VERIFICACIÓN FINAL
 -- ═══════════════════════════════════════════════════
 SELECT
   'users' as tabla, COUNT(*) as registros FROM public.users
@@ -279,7 +321,8 @@ UNION ALL SELECT 'workout_sessions', COUNT(*) FROM public.workout_sessions
 UNION ALL SELECT 'challenges', COUNT(*) FROM public.challenges
 UNION ALL SELECT 'achievement_definitions', COUNT(*) FROM public.achievement_definitions
 UNION ALL SELECT 'coach_messages', COUNT(*) FROM public.coach_messages
-UNION ALL SELECT 'progress_photos', COUNT(*) FROM public.progress_photos;
+UNION ALL SELECT 'progress_photos', COUNT(*) FROM public.progress_photos
+UNION ALL SELECT 'recipes', COUNT(*) FROM public.recipes;
 
--- Si ves 7 filas en el resultado con números = ¡Éxito!
+-- Si ves 8 filas en el resultado = ¡Éxito!
 -- La tabla achievement_definitions debe mostrar 19 registros
