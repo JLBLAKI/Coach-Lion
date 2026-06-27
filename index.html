@@ -75,6 +75,21 @@
       <button class="btn-gold" onclick="App.login()">⚡ ENTRAR</button>
       <button class="btn-bio hidden" id="bio-btn" onclick="App.biometricLogin()">🔱 Face ID / Huella</button>
       <p class="switch">¿Nuevo guerrero? <a href="#" onclick="App.showReg()">REGÍSTRATE</a></p>
+      <p class="switch" style="margin-top:4px"><a href="#" onclick="App.showForgot()" style="color:var(--wdim);font-size:11px">¿Olvidaste tu contraseña?</a></p>
+    </div>
+    <!-- FORGOT PASSWORD -->
+    <div id="form-forgot" class="card hidden">
+      <h2 class="card-title">RECUPERAR CONTRASEÑA</h2>
+      <p style="font-size:12px;color:var(--wdim);margin-bottom:12px">Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+      <div class="field"><span>📧</span><input id="forgot-email" type="email" placeholder="Tu correo electrónico" autocomplete="email"></div>
+      <button class="btn-gold" onclick="App.forgotPassword()">📧 ENVIAR ENLACE</button>
+      <p class="switch"><a href="#" onclick="App.showLogin()">← Volver al inicio de sesión</a></p>
+    </div>
+    <!-- RESET PASSWORD -->
+    <div id="form-reset-pw" class="card hidden">
+      <h2 class="card-title">NUEVA CONTRASEÑA</h2>
+      <div class="field"><span>🔐</span><input id="new-pw" type="password" placeholder="Nueva contraseña"></div>
+      <button class="btn-gold" onclick="App.showLogin()">✅ CONTINUAR</button>
     </div>
     <div id="form-reg" class="card hidden">
       <h2 class="card-title">CREAR PERFIL</h2>
@@ -260,6 +275,29 @@
         <div id="p-stats" class="p-stats"></div>
         <div class="sec-row"><h3 class="sec-title">AJUSTES</h3></div>
         <div id="p-settings" class="settings-list"></div>
+      </div>
+    </div>
+
+    <!-- CHAT (bidireccional atleta <-> coach) -->
+    <div id="page-chat" class="page">
+      <div class="scroll">
+        <h2 class="page-title">💬 MENSAJES</h2>
+        <p class="page-sub">Chat directo con tu coach</p>
+        <div id="chat-messages" class="chat-list"></div>
+        <div class="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Escribe un mensaje..." class="chat-field" onkeydown="if(event.key==='Enter')App.sendChatMsg()">
+          <button class="btn-sm" onclick="App.sendChatMsg()">📤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL paginado -->
+    <div id="page-history" class="page">
+      <div class="scroll">
+        <h2 class="page-title">📊 HISTORIAL</h2>
+        <p class="page-sub">Todas tus sesiones de entrenamiento</p>
+        <div id="history-list" class="hist-list"></div>
+        <div id="history-nav" class="hist-nav"></div>
       </div>
     </div>
 

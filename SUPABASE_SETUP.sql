@@ -311,6 +311,34 @@ CREATE TRIGGER recipes_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 
+
+-- ══════════════════════════════
+-- 9. PROGRESO DE RETOS POR USUARIO
+-- ══════════════════════════════
+CREATE TABLE IF NOT EXISTS public.user_challenge_progress (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  challenge_id UUID REFERENCES public.challenges(id) ON DELETE CASCADE,
+  progress     DECIMAL(10,2) DEFAULT 0,
+  updated_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, challenge_id)
+);
+ALTER TABLE public.user_challenge_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "progress_own" ON public.user_challenge_progress FOR ALL USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_progress_user ON public.user_challenge_progress(user_id);
+
+-- ══════════════════════════════
+-- 10. SUPABASE STORAGE — Fotos de progreso
+-- ══════════════════════════════
+-- Ejecuta esto en Storage > New bucket:
+-- Nombre: progress-photos
+-- Public: true
+-- O via SQL:
+INSERT INTO storage.buckets (id, name, public) VALUES ('progress-photos', 'progress-photos', true) ON CONFLICT DO NOTHING;
+CREATE POLICY "photos_upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'progress-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "photos_read" ON storage.objects FOR SELECT USING (bucket_id = 'progress-photos');
+
+
 -- ═══════════════════════════════════════════════════
 -- VERIFICACIÓN FINAL
 -- ═══════════════════════════════════════════════════
