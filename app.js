@@ -452,7 +452,7 @@ async function genImgGemini(prompt){
   if(!GEMINI_KEY)return null;
   try{
     const full=`${prompt}. Style: vibrant comic book art, Marvel/DC anime fusion, bold colors, dramatic lighting, halftone dots, strong black outlines, dark background with gold accents, no text overlay`;
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:full}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})});
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:full}]}],generationConfig:{responseModalities:['IMAGE','TEXT']}})});
     if(!res.ok)return null;
     const data=await res.json();
     const p=(data?.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData?.mimeType?.startsWith('image/'));
@@ -491,12 +491,26 @@ async function generateAIImage(prompt,name,icon){
 async function askGemini(prompt,sys){
   if(!GEMINI_KEY)return null;
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system_instruction:{parts:[{text:sys||'Responde SOLO en JSON válido sin markdown.'}]},contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1200}})});
-    if(!res.ok)return null;
+    // Combine system context into the user prompt for better compatibility
+    const fullPrompt=sys?`${sys}\n\n${prompt}`:prompt;
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:fullPrompt}]}],
+        generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}
+      })
+    });
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      console.warn('Gemini error:',err?.error?.message||res.status);
+      return null;
+    }
     const data=await res.json();
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    return JSON.parse(text.replace(/```json|```/g,'').trim());
-  }catch(e){return null;}
+    const clean=text.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  }catch(e){console.warn('askGemini err:',e.message);return null;}
 }
 
 // ── SOUND ──
@@ -795,16 +809,37 @@ const App={
   },
 
   // EXERCISE
-  buildMFilters(){const c=$('muscle-filters');if(!c)return;c.innerHTML=MUSCLES.map(m=>`<button class="mf-btn${m==='all'?' active':''}" onclick="App.filterEx('${m}')">${ML[m]}</button>`).join('');},
-  filterEx(m){document.querySelectorAll('.mf-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');const q=v('ex-search');this.renderExRes(EX_DB.filter(e=>(m==='all'||e.muscle===m)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-results');},
-  searchEx(q){const m=document.querySelector('.mf-btn.active')?.textContent;const mk=Object.keys(ML).find(k=>ML[k]===m)||'all';this.renderExRes(EX_DB.filter(e=>(mk==='all'||e.muscle===mk)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-results');},
+  openSearch(){
+    const c=$('ex-search');if(!c)return;
+    c.classList.toggle('hidden');
+    if(!c.classList.contains('hidden')){
+      this.renderExRes(EX_DB.slice(0,15),'ex-res');
+      const inp=$('ex-q');if(inp)inp.focus();
+    }
+  },
+  closeSearch(){$('ex-search')?.classList.add('hidden');},
+  buildMFilters(){const c=$('mfilters')||$('muscle-filters');if(!c)return;c.innerHTML=MUSCLES.map(m=>`<button class="mf-btn${m==='all'?' active':''}" onclick="App.filterEx('${m}')">${ML[m]}</button>`).join('');},
+  filterEx(m){document.querySelectorAll('.mf-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');const q=v('ex-q');this.renderExRes(EX_DB.filter(e=>(m==='all'||e.muscle===m)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-res');},
+  searchEx(q){const m=document.querySelector('.mf-btn.active')?.textContent;const mk=Object.keys(ML).find(k=>ML[k]===m)||'all';this.renderExRes(EX_DB.filter(e=>(mk==='all'||e.muscle===mk)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-res');},
   renderExRes(exs,cid){const c=$(cid);if(!c)return;c.innerHTML=exs.map(ex=>`<div class="ex-card" onclick="App.openEx('${ex.id}')"><div class="ex-ico">${ex.emoji}</div><div class="ex-info"><div class="ex-nm">${ex.name}</div><div class="ex-mu">${ML[ex.muscle]} · ${EQL[ex.equip]}</div></div><div class="ex-diff">${DFL[ex.diff]}</div></div>`).join('');},
   openEx(id){
     const ex=EX_DB.find(e=>e.id===id);if(!ex)return;
+    // Add directly to workout log if session active
+    if(S.sessActive){
+      const i=S.workLog.findIndex(e=>e.id===ex.id);
+      if(i===-1)S.workLog.push({...ex,sets:[]});
+      this.closeSearch();this.renderLog();toast(`✅ ${ex.name} agregado`);
+      return;
+    }
+    // Otherwise open modal
     S.curEx=ex;S.modalSets=[];
-    $('ex-title').textContent=ex.name;$('ex-emoji').textContent=ex.emoji;$('ex-inst').textContent=ex.inst;
-    $('ex-media').innerHTML=`<span style="font-size:52px;opacity:.3">${ex.emoji}</span>`;
-    $('sets-done').innerHTML='';$('sw').value='';$('sr').value='';
+    const nm=$('ex-title')||$('ex-m-name');if(nm)nm.textContent=ex.name;
+    const em=$('ex-emoji');if(em)em.textContent=ex.emoji;
+    const inst=$('ex-inst');if(inst)inst.textContent=ex.inst;
+    const media=$('ex-media');if(media)media.innerHTML=`<span style="font-size:52px;opacity:.3">${ex.emoji}</span>`;
+    const sd=$('sets-done');if(sd)sd.innerHTML='';
+    const sw=$('sw');if(sw)sw.value='';
+    const sr=$('sr');if(sr)sr.value='';
     this.openModal('modal-ex');
   },
   logSet(){const w=parseFloat($('sw').value)||0,r=parseInt($('sr').value);if(!r)return toast('Ingresa las repeticiones');S.modalSets.push({weight:w,reps:r});this.renderModalSets();$('sr').value='';},
@@ -827,15 +862,54 @@ const App={
   },
   inlineSet(xi){const w=parseFloat($(`iw${xi}`)?.value)||0,r=parseInt($(`ir${xi}`)?.value);if(!r)return;if(!S.workLog[xi].sets)S.workLog[xi].sets=[];S.workLog[xi].sets.push({weight:w,reps:r});this.renderLog();},
 
-  setRest(sec){
-    clearInterval(S.restTimer);S.restSec=sec;S.restDur=sec;S.restRunning=true;$('rest-arc')?.classList.remove('hidden');
-    const tick=()=>{
-      if(S.restSec<=0){clearInterval(S.restTimer);S.restRunning=false;$('rest-arc')?.classList.add('hidden');if(navigator.vibrate)navigator.vibrate([200,100,200]);if(navigator.serviceWorker?.controller)navigator.serviceWorker.controller.postMessage({type:'REST_DONE'});return;}
-      S.restSec--;const pct=S.restSec/S.restDur;
-      $('rest-time').textContent=pad(Math.floor(S.restSec/60))+':'+pad(S.restSec%60);
-      const circle=$('rest-circle');if(circle){const r=42,circ=2*Math.PI*r;circle.style.strokeDashoffset=circ*(1-pct);}
-    };
-    tick();S.restTimer=setInterval(tick,1000);
+  setRest(sec,btn){
+    // Update active preset button
+    document.querySelectorAll('.pre').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    clearInterval(S.restTimer);S.restSec=sec;S.restDur=sec;S.restRunning=false;
+    // Update display without starting
+    const el=$('rest-n');if(el)el.textContent=sec;
+    const fg=$('ring-fg');
+    if(fg){const circ=2*Math.PI*44;fg.style.strokeDasharray=circ;fg.style.strokeDashoffset=0;}
+    const btn2=$('rest-start-btn');if(btn2)btn2.textContent='▶ INICIAR';
+  },
+
+  toggleRest(){
+    if(S.restRunning){
+      // Pause
+      clearInterval(S.restTimer);S.restRunning=false;
+      const btn=$('rest-start-btn');if(btn)btn.textContent='▶ CONTINUAR';
+    } else {
+      // Start / Resume
+      if(S.restSec<=0){S.restSec=S.restDur;}
+      S.restRunning=true;
+      const btn=$('rest-start-btn');if(btn)btn.textContent='⏸ PAUSAR';
+      const tick=()=>{
+        if(!S.restRunning)return;
+        if(S.restSec<=0){
+          clearInterval(S.restTimer);S.restRunning=false;
+          const b=$('rest-start-btn');if(b)b.textContent='▶ INICIAR';
+          const el=$('rest-n');if(el)el.textContent=S.restDur;
+          const fg=$('ring-fg');if(fg){const circ=2*Math.PI*44;fg.style.strokeDasharray=circ;fg.style.strokeDashoffset=0;}
+          if(navigator.vibrate)navigator.vibrate([300,100,300,100,500]);
+          playRoar();
+          if(navigator.serviceWorker?.controller)navigator.serviceWorker.controller.postMessage({type:'REST_DONE'});
+          return;
+        }
+        S.restSec--;
+        const el=$('rest-n');if(el)el.textContent=S.restSec;
+        const fg=$('ring-fg');
+        if(fg){const circ=2*Math.PI*44;fg.style.strokeDasharray=circ;fg.style.strokeDashoffset=circ*(S.restSec/S.restDur);}
+      };
+      tick();S.restTimer=setInterval(tick,1000);
+    }
+  },
+
+  resetRest(){
+    clearInterval(S.restTimer);S.restRunning=false;S.restSec=S.restDur;
+    const el=$('rest-n');if(el)el.textContent=S.restDur;
+    const fg=$('ring-fg');if(fg){const circ=2*Math.PI*44;fg.style.strokeDasharray=circ;fg.style.strokeDashoffset=0;}
+    const btn=$('rest-start-btn');if(btn)btn.textContent='▶ INICIAR';
   },
 
   // ROUTINES
