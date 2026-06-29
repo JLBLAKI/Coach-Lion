@@ -624,35 +624,79 @@ const App={
 
   // BIOMETRIC — Face ID / Huella (Android + iOS)
   async biometricLogin(){
-    if(!Bio.isRegistered())return toast('Activa el acceso biométrico en tu perfil primero');
+    if(!Bio.isRegistered()){toast('Activa el acceso biométrico en tu perfil primero');return;}
+    const btn=$('bio-btn');if(btn){btn.textContent='⏳ Verificando...';btn.disabled=true;}
     try{
       const username=await Bio.authenticate();
-      const cached=Cache.get('user');
-      if(cached&&cached.username===username){S.user=cached;await this.enterApp();toast('🔓 Acceso biométrico exitoso');}
-      else toast('Inicia sesión manualmente primero para vincular la biometría');
+      // Try cache first, then localStorage, then Supabase session
+      let user=Cache.get('user');
+      if(!user||user.username!==username){
+        // Try to restore session from Supabase
+        const{data}=await sb.auth.getSession();
+        if(data?.session){
+          const{data:p}=await sb.from('users').select('*').eq('username',username).single();
+          if(p){user=p;Cache.set('user',p);}
+        }
+      }
+      if(user&&user.username===username){
+        S.user=user;
+        await this.enterApp();
+        toast('🔓 Acceso biométrico exitoso');
+      } else {
+        // Force re-login with stored credentials
+        const storedPw=localStorage.getItem('cl_bio_pw');
+        if(storedPw){
+          try{
+            const{user:u}=await DB.login(username,atob(storedPw));
+            S.user=u;await this.enterApp();toast('🔓 Acceso biométrico exitoso');
+          }catch(e2){
+            Bio.clear();
+            toast('Sesión expirada. Inicia sesión manualmente para reactivar la biometría.');
+          }
+        } else {
+          toast('Inicia sesión una vez manualmente para vincular la biometría.');
+        }
+      }
     }catch(e){
       if(e.name==='NotAllowedError')toast('Autenticación cancelada o denegada');
-      else toast('Error biométrico: '+e.message);
+      else if(e.name==='NotSupportedError')toast('Biometría no soportada en este navegador');
+      else toast('Error: '+e.message);
+    }finally{
+      if(btn){btn.textContent='🔱 Face ID / Huella';btn.disabled=false;}
     }
   },
 
   async saveBiometric(){
     if(!S.user)return;
     if(!await Bio.isAvailable()){toast('Este dispositivo no soporta Face ID / Huella digital');return;}
+    // Ask for password to store for session recovery
+    const pw=prompt('Ingresa tu contraseña para activar la biometría:');
+    if(!pw)return;
     try{
+      // Verify password is correct before saving
+      await DB.login(S.user.username,pw);
       await Bio.register(S.user);
+      // Store obfuscated password for session recovery after expiry
+      localStorage.setItem('cl_bio_pw',btoa(pw));
       toast('✅ Face ID / Huella activada correctamente');
       await this.updateUI();
     }catch(e){
-      if(e.name==='NotAllowedError')toast('Permiso denegado. Verifica la configuración del dispositivo.');
-      else if(e.name==='InvalidStateError')toast('Ya hay una credencial registrada en este dispositivo.');
+      if(e.name==='NotAllowedError')toast('Permiso denegado. Ve a Ajustes del dispositivo y permite biometría para el navegador.');
+      else if(e.name==='InvalidStateError'){
+        // Already registered — just update the stored password
+        localStorage.setItem('cl_bio_pw',btoa(pw));
+        toast('✅ Biometría ya estaba activa. Contraseña actualizada.');
+      }
+      else if(e.message?.includes('incorrectos'))toast('Contraseña incorrecta. Intenta de nuevo.');
       else toast('Error al activar biometría: '+e.message);
     }
   },
 
   async removeBiometric(){
     if(!confirm('¿Desactivar Face ID / Huella digital?'))return;
-    Bio.clear();toast('🔒 Acceso biométrico desactivado');
+    Bio.clear();
+    localStorage.removeItem('cl_bio_pw');
+    toast('🔒 Acceso biométrico desactivado');
     await this.updateUI();
   },
 
@@ -662,7 +706,9 @@ const App={
     S.user=null;S.isCoach=false;
     this.showScr('auth');this.showLogin();
     $('coach-btn')?.classList.add('hidden');$('coach-nav')?.classList.add('hidden');
-    if(Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');
+    // Show bio button if registered (keep bio after logout)
+    const biobtn=$('bio-btn');
+    if(biobtn)biobtn.classList.toggle('hidden',!Bio.isRegistered());
   },
 
   // UI
@@ -818,7 +864,7 @@ const App={
     }
   },
   closeSearch(){$('ex-search')?.classList.add('hidden');},
-  buildMFilters(){const c=$('mfilters')||$('muscle-filters');if(!c)return;c.innerHTML=MUSCLES.map(m=>`<button class="mf-btn${m==='all'?' active':''}" onclick="App.filterEx('${m}')">${ML[m]}</button>`).join('');},
+  buildMFilters(){const c=$('mfilters')||$('mfilters')||$('muscle-filters');if(!c)return;c.innerHTML=MUSCLES.map(m=>`<button class="mf-btn${m==='all'?' active':''}" onclick="App.filterEx('${m}')">${ML[m]}</button>`).join('');},
   filterEx(m){document.querySelectorAll('.mf-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');const q=v('ex-q');this.renderExRes(EX_DB.filter(e=>(m==='all'||e.muscle===m)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-res');},
   searchEx(q){const m=document.querySelector('.mf-btn.active')?.textContent;const mk=Object.keys(ML).find(k=>ML[k]===m)||'all';this.renderExRes(EX_DB.filter(e=>(mk==='all'||e.muscle===mk)&&(!q||e.name.toLowerCase().includes(q.toLowerCase()))),'ex-res');},
   renderExRes(exs,cid){const c=$(cid);if(!c)return;c.innerHTML=exs.map(ex=>`<div class="ex-card" onclick="App.openEx('${ex.id}')"><div class="ex-ico">${ex.emoji}</div><div class="ex-info"><div class="ex-nm">${ex.name}</div><div class="ex-mu">${ML[ex.muscle]} · ${EQL[ex.equip]}</div></div><div class="ex-diff">${DFL[ex.diff]}</div></div>`).join('');},

@@ -18,10 +18,9 @@
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Entrenar ahora", "short_name": "Entrenar", "description": "Iniciar sesión de entrenamiento", "url": "/?page=workout", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
-    { "name": "Mis rutinas", "short_name": "Rutinas", "description": "Ver mis rutinas", "url": "/?page=routines", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
-    { "name": "Recetas", "short_name": "Recetas", "description": "Ver recetas fitness", "url": "/?page=recipes", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+    { "name": "Entrenar ahora", "short_name": "Entrenar", "url": "/?page=workout", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mis rutinas",    "short_name": "Rutinas",  "url": "/?page=routines","icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Recetas",        "short_name": "Recetas",  "url": "/?page=recipes", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
   ],
-  "screenshots": [],
   "prefer_related_applications": false
 }
