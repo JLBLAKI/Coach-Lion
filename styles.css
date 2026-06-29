@@ -480,6 +480,33 @@ input,select,textarea{font-family:var(--fu);font-size:15px}button{font-family:va
 .hist-exs{font-size:11px;color:var(--wdim);margin-top:4px}
 .hist-nav{display:flex;gap:8px;justify-content:center;padding:12px 0}
 
+
+/* WEIGHT MINI CHART */
+#weight-mini{min-height:40px}
+#weight-mini svg{display:block}
+
+/* MUSCLE HEATMAP */
+#muscle-heatmap svg{display:block;margin:0 auto}
+
+/* MEASUREMENTS MODAL */
+.ex-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.ex-field-item label{display:block;font-family:var(--ft);font-size:9px;color:var(--gold);letter-spacing:1px;margin-bottom:4px}
+.ex-field-item input{width:100%;background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:15px;font-weight:700;padding:10px;outline:none;box-sizing:border-box}
+.ex-field-item input:focus{border-color:var(--gold)}
+
+/* HISTORY DETAIL MODAL */
+#hist-detail-content .sdr{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)}
+
+/* PRESET CARD */
+#presets-list .rc{cursor:pointer;transition:border-color .2s}
+#presets-list .rc:hover{border-color:var(--gold)}
+
+/* ACHIEVEMENT SHARE BUTTON */
+.btn-share-ach{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);border:none;border-radius:6px;color:var(--white);font-size:12px;padding:3px 6px;cursor:pointer;z-index:2}
+
+/* RECORDS 1RM */
+.rec-card .rec-1rm{font-size:10px;color:var(--gold);margin-top:2px}
+
 /* RESPONSIVE */
 @media(max-width:375px){
   .stats-row{grid-template-columns:repeat(2,1fr)}

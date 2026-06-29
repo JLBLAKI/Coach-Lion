@@ -154,6 +154,15 @@
         <div class="sec-row"><h3 class="sec-title">🏅 RANKING</h3><button class="btn-sm" onclick="App.goTo('leaderboard')">VER TODO</button></div>
         <div id="leaderboard-mini" class="leaderboard-mini"></div>
 
+        <!-- HEATMAP MUSCULAR -->
+        <div class="card" style="margin-top:10px">
+          <div id="muscle-heatmap"></div>
+        </div>
+        <!-- GRÁFICA PESO MINI -->
+        <div class="card" style="margin-top:10px">
+          <div id="weight-mini"></div>
+        </div>
+
         <div class="sec-row"><h3 class="sec-title">📅 ACTIVIDAD</h3></div>
         <div id="act-cal" class="act-cal"></div>
         <div class="sec-row"><h3 class="sec-title">📋 RUTINA DE HOY</h3><button class="btn-sm" onclick="App.startWorkout()">▶ INICIAR</button></div>
@@ -225,6 +234,8 @@
         <div class="chart-card"><canvas id="prog-chart"></canvas></div>
         <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">VOLUMEN SEMANAL</h3></div>
         <div class="chart-card"><canvas id="vol-chart"></canvas></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">⚖️ PESO CORPORAL</h3></div>
+        <div class="chart-card"><canvas id="weight-chart" height="120"></canvas></div>
         <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">🏅 RÉCORDS</h3></div>
         <div id="records" class="records"></div>
         <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">📸 FOTOS DE PROGRESO</h3><button class="btn-sm" onclick="App.addPhoto()">+ FOTO</button></div>
@@ -500,7 +511,10 @@
     <h2 class="popup-name" id="pop-name">NOMBRE</h2>
     <p class="popup-desc" id="pop-desc">Descripción</p>
     <p class="popup-xp" id="pop-xp">+500 XP</p>
-    <button class="btn-gold" onclick="App.closeAchPopup()">¡ÉPICO! 🦁</button>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn-ghost" id="pop-share">📤 COMPARTIR</button>
+      <button class="btn-gold" onclick="App.closeAchPopup()">¡ÉPICO! 🦁</button>
+    </div>
   </div>
 </div>
 
@@ -654,6 +668,40 @@
     GEMINI_KEY: "AIzaSyAG9_BfKPv2SD59T2waNlY3uq1Ls_xjWhc"
   };
 </script>
+
+<!-- MODAL MEDIDAS CORPORALES -->
+<div id="modal-measurements" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>📐 MEDIDAS CORPORALES</h3><button onclick="App.closeModal('modal-measurements')">✕</button></div>
+    <p style="font-size:11px;color:var(--wdim);margin-bottom:12px">Registra tus medidas en centímetros</p>
+    <div class="ex-fields-grid">
+      <div class="ex-field-item"><label>💪 Brazo (cm)</label><input type="number" id="m-arm" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🫁 Pecho (cm)</label><input type="number" id="m-chest" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🎯 Cintura (cm)</label><input type="number" id="m-waist" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🍑 Cadera (cm)</label><input type="number" id="m-hip" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🦵 Muslo (cm)</label><input type="number" id="m-leg" placeholder="cm" step="0.5"></div>
+    </div>
+    <button class="btn-gold" onclick="App.saveMeasurements()">💾 GUARDAR MEDIDAS</button>
+  </div>
+</div>
+
+<!-- MODAL PLANTILLAS DE RUTINAS -->
+<div id="modal-presets" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>📚 PLANTILLAS</h3><button onclick="App.closeModal('modal-presets')">✕</button></div>
+    <p style="font-size:11px;color:var(--wdim);margin-bottom:12px">Selecciona una rutina predefinida para cargarla</p>
+    <div id="presets-list"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE HISTORIAL -->
+<div id="modal-hist-detail" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>📊 DETALLE SESIÓN</h3><button onclick="App.closeModal('modal-hist-detail')">✕</button></div>
+    <div id="hist-detail-content"></div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

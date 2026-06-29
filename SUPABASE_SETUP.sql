@@ -354,3 +354,10 @@ UNION ALL SELECT 'recipes', COUNT(*) FROM public.recipes;
 
 -- Si ves 8 filas en el resultado = ¡Éxito!
 -- La tabla achievement_definitions debe mostrar 19 registros
+
+-- ══════════════════════════════
+-- NUEVAS COLUMNAS v10
+-- ══════════════════════════════
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS weight_log JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS body_measurements JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS workout_notes JSONB DEFAULT '[]'::jsonb;
