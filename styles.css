@@ -507,6 +507,65 @@ input,select,textarea{font-family:var(--fu);font-size:15px}button{font-family:va
 /* RECORDS 1RM */
 .rec-card .rec-1rm{font-size:10px;color:var(--gold);margin-top:2px}
 
+
+/* ── DARK / LIGHT MODE ── */
+:root[data-theme="light"]{
+  --d1:#f5f5f5;--d2:#ffffff;--d3:#eeeeee;
+  --white:#1a1a1a;--wdim:#555555;
+  --border:rgba(0,0,0,.12);--borderb:rgba(0,0,0,.25);
+  --black:#ffffff;--gdim:rgba(245,197,24,.15);
+}
+:root[data-theme="light"] .bnav{background:#fff;border-top:1px solid rgba(0,0,0,.1)}
+:root[data-theme="light"] .modal-card{background:#fff;border-color:rgba(0,0,0,.15)}
+:root[data-theme="light"] .card{background:#fff;border-color:rgba(0,0,0,.1)}
+:root[data-theme="light"] .rc{background:#fff;border-color:rgba(0,0,0,.1)}
+
+/* ── WEEKLY PLAN GRID ── */
+.weekly-plan-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.wp-day{background:var(--d2);border:1px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;transition:border-color .2s}
+.wp-today{border-color:var(--gold);background:rgba(245,197,24,.08)}
+.wp-day-label{font-family:var(--fu);font-size:9px;font-weight:700;color:var(--wdim);letter-spacing:1px}
+.wp-today-label{color:var(--gold)}
+.wp-routine-name{font-family:var(--fd);font-size:9px;letter-spacing:1px;color:var(--white);word-break:break-all;text-align:center}
+.wp-ex-count{font-size:9px;color:var(--wdim)}
+.wp-today-badge{background:var(--gold);color:#000;font-family:var(--fu);font-size:7px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:1px}
+.wp-rest{font-size:18px}
+.wp-rest-label{font-size:8px;color:var(--wdim)}
+
+/* ── SUPERSET / DROPSET / RPE ── */
+.badge-ss,.badge-ds{font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;font-family:var(--fu)}
+.badge-ss{background:rgba(0,229,255,.15);color:#00e5ff}
+.badge-ds{background:rgba(229,57,53,.15);color:#e53935}
+.superset-item{border-left:3px solid #00e5ff}
+.dropset-item{border-left:3px solid #e53935}
+.log-ex-actions{display:flex;gap:3px;flex-shrink:0}
+.btn-xs{background:var(--d3);border:1px solid var(--border);border-radius:6px;color:var(--wdim);font-size:12px;padding:3px 6px;cursor:pointer}
+.btn-xs:active{background:var(--borderb)}
+.rpe-btn{background:rgba(245,197,24,.15);border:1px solid var(--borderb);border-radius:5px;color:var(--gold);font-family:var(--fu);font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;margin-left:4px}
+.rpe-picker{position:absolute;right:0;bottom:100%;background:var(--d3);border:1px solid var(--borderb);border-radius:10px;padding:6px;display:flex;flex-wrap:wrap;gap:4px;z-index:50;min-width:160px}
+.rpe-picker button{background:var(--d2);border:1px solid var(--border);border-radius:6px;color:var(--white);font-size:11px;padding:4px 8px;cursor:pointer}
+.rpe-picker button:hover{border-color:var(--gold);color:var(--gold)}
+.suggest-tip{font-size:10px;color:var(--gold);margin-top:2px}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-sw{position:relative;display:inline-block;width:44px;height:24px}
+.toggle-sw input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--d3);border-radius:24px;transition:.3s;border:1px solid var(--border)}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:2px;bottom:2px;background:var(--wdim);border-radius:50%;transition:.3s}
+.toggle-sw input:checked+.toggle-slider{background:rgba(245,197,24,.3);border-color:var(--gold)}
+.toggle-sw input:checked+.toggle-slider:before{transform:translateX(20px);background:var(--gold)}
+
+/* ── INVITE CODES ── */
+.code-row{display:flex;align-items:center;justify-content:space-between;background:var(--d3);border-radius:9px;padding:8px 12px;margin-bottom:6px}
+.code-val{font-family:var(--fu);font-size:14px;font-weight:700;letter-spacing:3px;color:var(--gold)}
+
+/* ── ATHLETE FILTERS ── */
+.athlete-filters{display:flex;gap:6px;margin-bottom:10px}
+
+/* ── MUSCLE STATS ── */
+#muscle-stats{padding:4px 0}
+
+
 /* RESPONSIVE */
 @media(max-width:375px){
   .stats-row{grid-template-columns:repeat(2,1fr)}

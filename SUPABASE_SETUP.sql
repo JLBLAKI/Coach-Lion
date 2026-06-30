@@ -361,3 +361,16 @@ UNION ALL SELECT 'recipes', COUNT(*) FROM public.recipes;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS weight_log JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS body_measurements JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS workout_notes JSONB DEFAULT '[]'::jsonb;
+
+-- ══════════════════════════════
+-- NUEVAS COLUMNAS v11
+-- ══════════════════════════════
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS weight_log JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS body_measurements JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS workout_notes JSONB DEFAULT '[]'::jsonb;
+
+-- Política realtime para mensajes
+ALTER PUBLICATION supabase_realtime ADD TABLE public.coach_messages;
+
+-- Verificación final v11
+SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;

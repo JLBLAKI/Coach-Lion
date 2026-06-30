@@ -111,6 +111,7 @@
         </div>
       </div>
       <button class="btn-gold" onclick="App.register()">🦁 CREAR MI PERFIL</button>
+      <div class="field"><span>🔑</span><input id="r-invite" type="text" placeholder="Código de invitación" autocomplete="off" style="text-transform:uppercase"></div>
       <p class="switch">¿Ya tienes cuenta? <a href="#" onclick="App.showLogin()">INICIA SESIÓN</a></p>
     </div>
   </div>
@@ -289,6 +290,19 @@
       </div>
     </div>
 
+    <!-- PLAN SEMANAL -->
+    <div id="page-weekly-plan" class="page">
+      <div class="scroll">
+        <h2 class="page-title">📅 PLAN SEMANAL</h2>
+        <p class="page-sub">Tu semana de entrenamiento</p>
+        <div id="weekly-plan" class="weekly-plan-grid"></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">📊 ESTADÍSTICAS MUSCULARES</h3></div>
+        <div class="card"><div id="muscle-stats"></div></div>
+        <div class="sec-row" style="margin-top:14px"><h3 class="sec-title">🔥 DISTRIBUCIÓN DE VOLUMEN</h3></div>
+        <div class="card"><canvas id="muscle-vol-chart" height="160"></canvas></div>
+      </div>
+    </div>
+
     <!-- CHAT (bidireccional atleta <-> coach) -->
     <div id="page-chat" class="page">
       <div class="scroll">
@@ -333,10 +347,21 @@
           <button class="ctab" onclick="App.coachTab('achievements',this)">🏆 Logros</button>
           <button class="ctab" onclick="App.coachTab('messages',this)">💬 Mensajes</button>
           <button class="ctab" onclick="App.coachTab('recipes',this)">🥗 Recetas</button>
+          <button class="ctab" onclick="App.coachTab('codes',this)">🔑 Códigos</button>
         </div>
 
         <!-- Atletas -->
         <div id="ct-athletes" class="ctab-body">
+          <div class="athlete-filters">
+            <input id="athlete-search" type="text" placeholder="🔍 Buscar atleta..." oninput="App.renderCoach()" style="flex:1;background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:13px;padding:9px;outline:none">
+            <select id="athlete-goal-filter" onchange="App.renderCoach()" style="background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:12px;padding:9px;outline:none">
+              <option value="all">Todos</option>
+              <option value="strength">⚡ Fuerza</option>
+              <option value="hypertrophy">💪 Masa</option>
+              <option value="weightloss">🔥 Definir</option>
+              <option value="endurance">🏃 Resistencia</option>
+            </select>
+          </div>
           <div id="athletes-list" class="athletes-list"></div>
         </div>
 
@@ -375,6 +400,13 @@
           <div id="sent-msgs" class="sent-msgs"></div>
         </div>
 
+        <!-- Códigos de invitación -->
+        <div id="ct-codes" class="ctab-body hidden">
+          <h4 style="font-family:var(--fd);letter-spacing:2px;margin-bottom:8px">🔑 CÓDIGOS DE INVITACIÓN</h4>
+          <p style="font-size:11px;color:var(--wdim);margin-bottom:12px">Los nuevos usuarios necesitan un código para registrarse. Comparte estos códigos con tus atletas.</p>
+          <div id="invite-codes-list"></div>
+        </div>
+
         <!-- Recetas (Coach) -->
         <div id="ct-recipes" class="ctab-body hidden">
           <button class="btn-gold" style="margin-bottom:12px" onclick="App.openCreateRecipe()">+ CREAR RECETA</button>
@@ -391,6 +423,7 @@
     <button class="nb" onclick="App.goTo('workout')" data-p="workout"><span>⚡</span><span>ENTRENA</span></button>
     <button class="nb" onclick="App.goTo('routines')" data-p="routines"><span>📋</span><span>RUTINAS</span></button>
     <button class="nb" onclick="App.goTo('recipes')" data-p="recipes"><span>🥗</span><span>RECETAS</span></button>
+    <button class="nb" onclick="App.goTo('weekly-plan')" data-p="weekly-plan"><span>📅</span><span>PLAN</span></button>
     <button class="nb" onclick="App.goTo('achievements')" data-p="achievements"><span>🏆</span><span>LOGROS</span></button>
   </nav>
 </div>
@@ -668,6 +701,23 @@
     GEMINI_KEY: "AIzaSyAG9_BfKPv2SD59T2waNlY3uq1Ls_xjWhc"
   };
 </script>
+
+<!-- MODAL NOTIFICACIONES -->
+<div id="modal-notif-settings" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>🔔 RECORDATORIO</h3><button onclick="App.closeModal('modal-notif-settings')">✕</button></div>
+    <p style="font-size:12px;color:var(--wdim);margin-bottom:14px">Recibe una notificación diaria para recordarte entrenar.</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:13px">Activar recordatorio</span>
+      <label class="toggle-sw"><input type="checkbox" id="notif-toggle"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="ex-fields-grid">
+      <div class="ex-field-item"><label>🕐 Hora</label><input type="number" id="notif-hour" min="0" max="23" value="8" placeholder="8"></div>
+      <div class="ex-field-item"><label>⏱️ Minutos</label><input type="number" id="notif-min" min="0" max="59" value="00" placeholder="00"></div>
+    </div>
+    <button class="btn-gold" onclick="App.saveNotifSettings()">💾 GUARDAR</button>
+  </div>
+</div>
 
 <!-- MODAL MEDIDAS CORPORALES -->
 <div id="modal-measurements" class="modal hidden">
