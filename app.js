@@ -195,15 +195,6 @@ const Bio={
 };
 
 // ── DB LAYER — optimizado ──
-// ── INVITATION CODES ──
-const INVITE_CODES = ['LION2024','BEAST','IRONCOACH','WARRIOR','CAMPE0N','FUERZA1'];
-
-function validateInviteCode(code){
-  const custom = localStorage.getItem('cl_invite_codes');
-  const codes = custom ? JSON.parse(custom) : INVITE_CODES;
-  return codes.map(c=>c.toUpperCase()).includes(code.toUpperCase().trim());
-}
-
 const DB={
   async register(name,username,password,profile){
     if(BLOCKED_USERNAMES.includes(username.toLowerCase()))throw new Error('Ese nombre de usuario no está disponible');
@@ -400,16 +391,6 @@ const DB={
     await sb.from('coach_messages').insert({to_user_id:toUserId,from_user_id:fromUserId,from_name:fromName,message:text,read:false});
   },
 
-  // Realtime subscription for chat
-  subscribeToMessages(userId, callback){
-    const uid = userId || S.user?.id;
-    const channel = sb.channel('msgs_'+uid)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'coach_messages',filter:`to_user_id=eq.${uid}`},
-        payload => { callback(payload.new); })
-      .subscribe();
-    return channel; // call channel.unsubscribe() to stop
-  },
-
   async getMessages(userId){
     const uid=userId||S.user?.id;
     if(!navigator.onLine)return Cache.get('msgs_'+uid)||[];
@@ -563,19 +544,27 @@ async function generateAIImage(prompt,name,icon){
 
 // ── GEMINI TEXT ──
 async function askGemini(prompt,sys){
-  if(!GEMINI_KEY)return null;
+  if(!GEMINI_KEY||GEMINI_KEY==='YOUR_GEMINI_KEY')return null;
   try{
     const fullPrompt=sys?`${sys}\n\n${prompt}`:prompt;
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}})
-    });
-    if(!res.ok){const err=await res.json().catch(()=>({}));console.warn('Gemini err:',err?.error?.message||res.status);return null;}
-    const data=await res.json();
-    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    return JSON.parse(text.replace(/```json|```/g,'').trim());
+    const models=['gemini-1.5-flash-latest','gemini-1.5-flash','gemini-pro'];
+    for(const model of models){
+      try{
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}})
+        });
+        if(!res.ok)continue;
+        const data=await res.json();
+        const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+        if(!text)continue;
+        return JSON.parse(text.replace(/```json|```/g,'').trim());
+      }catch(modelErr){continue;}
+    }
+    return null;
   }catch(e){console.warn('askGemini:',e.message);return null;}
 }
+
 
 // ── VOICE TIMER (síntesis de voz) ──
 function speak(text){
@@ -622,70 +611,10 @@ async function shareAchievement(ach){
   },'image/png');
 }
 
-// ── PUSH NOTIFICATIONS ──
-const PushNotif = {
-  async isSupported(){return 'serviceWorker' in navigator && 'PushManager' in window;},
-  async isGranted(){return Notification.permission === 'granted';},
-
-  async requestPermission(){
-    if(!await this.isSupported()) return false;
-    const result = await Notification.requestPermission();
-    return result === 'granted';
-  },
-
-  async scheduleDaily(hour, minute){
-    if(!await this.isGranted()) return false;
-    // Store schedule in localStorage — SW checks on activation
-    localStorage.setItem('cl_notif_hour', hour);
-    localStorage.setItem('cl_notif_min', minute);
-    localStorage.setItem('cl_notif_enabled', '1');
-    // Register periodic check via SW message
-    const reg = await navigator.serviceWorker.ready;
-    reg.active?.postMessage({type:'SCHEDULE_NOTIF', hour, minute});
-    return true;
-  },
-
-  getSchedule(){
-    return {
-      enabled: localStorage.getItem('cl_notif_enabled') === '1',
-      hour: parseInt(localStorage.getItem('cl_notif_hour') || '8'),
-      minute: parseInt(localStorage.getItem('cl_notif_min') || '0'),
-    };
-  },
-
-  disable(){
-    localStorage.removeItem('cl_notif_enabled');
-    navigator.serviceWorker.ready.then(reg => reg.active?.postMessage({type:'CANCEL_NOTIF'}));
-  },
-
-  async showNow(title, body){
-    if(!await this.isGranted()) return;
-    const reg = await navigator.serviceWorker.ready;
-    reg.showNotification(title, {body, icon:'/icon-192.png', badge:'/icon-192.png', vibrate:[200,100,200], tag:'coach-lion'});
-  }
-};
-
 // ── SOUND ──
 function playRoar(){
   try{const ctx=new(window.AudioContext||window.webkitAudioContext)();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sawtooth';osc.frequency.setValueAtTime(120,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(60,ctx.currentTime+0.3);gain.gain.setValueAtTime(0.4,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.6);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.6);}catch(e){}
 }
-
-// ── DARK / LIGHT MODE ──
-const Theme = {
-  current(){ return localStorage.getItem('cl_theme') || 'dark'; },
-  toggle(){
-    const next = this.current() === 'dark' ? 'light' : 'dark';
-    this.apply(next);
-    localStorage.setItem('cl_theme', next);
-    return next;
-  },
-  apply(theme){
-    document.documentElement.setAttribute('data-theme', theme);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if(meta) meta.content = theme === 'light' ? '#f5f5f5' : '#08080f';
-  },
-  init(){ this.apply(this.current()); }
-};
 
 // ── TOAST ──
 function toast(msg){
@@ -754,14 +683,6 @@ const App={
     this.checkCoachMsg();this.checkNotif();this.buildChartSel();
     if('wakeLock' in navigator)this.reqWL();
     if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-    // Subscribe to realtime messages
-    this._msgChannel = DB.subscribeToMessages(S.user.id, msg=>{
-      toast(`💬 Nuevo mensaje de ${msg.from_name}`);
-      Cache.del('msgs_'+S.user.id);
-      if(document.querySelector('#page-chat.active')) this.renderChat();
-    });
-    // Weekly backup silently
-    this.weeklyBackup();
   },
 
   showReg(){$('form-login')?.classList.add('hidden');$('form-reg')?.classList.remove('hidden');},
@@ -772,10 +693,6 @@ const App={
   async register(){
     const n=v('r-name'),u=v('r-user'),p=v('r-pass');
     if(!n||!u||!p)return toast('Completa nombre, usuario y contraseña');
-    // Validate invite code if required
-    const inviteEnabled = localStorage.getItem('cl_invite_required') !== '0';
-    const code = v('r-invite');
-    if(inviteEnabled && !validateInviteCode(code)) return toast('❌ Código de invitación inválido. Solicítalo a tu coach.');
     const btn=document.querySelector('#form-reg .btn-gold');btn.textContent='⏳ CREANDO...';btn.disabled=true;
     try{
       const w=parseFloat(v('r-w'))||null,h=parseFloat(v('r-h'))||null;
@@ -849,10 +766,7 @@ const App={
 
   async logout(){
     if(!confirm('¿Cerrar sesión?'))return;
-    this.stopSess();
-    // Unsubscribe realtime
-    if(this._msgChannel){try{await this._msgChannel.unsubscribe();}catch(e){}}
-    await DB.logout();S.user=null;S.isCoach=false;
+    this.stopSess();await DB.logout();S.user=null;S.isCoach=false;
     this.showScr('auth');this.showLogin();
     $('coach-btn')?.classList.add('hidden');$('coach-nav')?.classList.add('hidden');
     const biobtn=$('bio-btn');if(biobtn)biobtn.classList.toggle('hidden',!Bio.isRegistered());
@@ -912,9 +826,36 @@ const App={
   },
 
   toggleTheme(){
-    const t=Theme.toggle();toast(t==='dark'?'🌙 Modo oscuro activado':'☀️ Modo claro activado');
-    // Refresh profile to update button label
+    const t=Theme.toggle();toast(t==='dark'?'🌙 Modo oscuro':'☀️ Modo claro');
     setTimeout(()=>this.updateProfile(),100);
+  },
+
+  async openNotifSettings(){
+    const sched=PushNotif.getSchedule();
+    let displayHour=sched.hour,ampm='am';
+    if(sched.hour>=12){ampm='pm';displayHour=sched.hour===12?12:sched.hour-12;}
+    if(sched.hour===0){displayHour=12;ampm='am';}
+    const h=$('notif-hour');if(h)h.value=displayHour;
+    const m=$('notif-min');if(m)m.value=String(sched.minute).padStart(2,'0');
+    const ap=$('notif-ampm');if(ap)ap.value=ampm;
+    const t=$('notif-toggle');if(t)t.checked=sched.enabled;
+    this.openModal('modal-notif-settings');
+  },
+
+  async saveNotifSettings(){
+    const enabled=$('notif-toggle')?.checked;
+    let hour=parseInt($('notif-hour')?.value||'8');
+    const min=parseInt($('notif-min')?.value||'0');
+    const ampm=$('notif-ampm')?.value||'am';
+    if(ampm==='pm'&&hour!==12)hour+=12;
+    if(ampm==='am'&&hour===12)hour=0;
+    if(enabled){
+      const granted=await PushNotif.requestPermission();
+      if(!granted){toast('Activa los permisos de notificación en Ajustes del dispositivo');return;}
+      await PushNotif.scheduleDaily(hour,min);
+      toast(`🔔 Recordatorio: ${$('notif-hour')?.value}:${String(min).padStart(2,'0')} ${ampm.toUpperCase()}`);
+    }else{PushNotif.disable();toast('🔕 Recordatorios desactivados');}
+    this.closeModal('modal-notif-settings');await this.updateProfile();
   },
 
   async togglePrivacy(){
@@ -960,20 +901,21 @@ const App={
   // ── MEDIDAS CORPORALES ──
   openMeasurements(){
     const m=S.user?.body_measurements||{};
-    $('m-chest').value=m.chest||'';$('m-waist').value=m.waist||'';
-    $('m-hip').value=m.hip||'';$('m-arm').value=m.arm||'';$('m-leg').value=m.leg||'';
+    const fields={chest:'chest',abdomen:'abdomen',waist:'waist','shoulder-l':'shoulder_l','shoulder-r':'shoulder_r','arm-l':'arm_l','arm-r':'arm_r','arm-l-flex':'arm_l_flex','arm-r-flex':'arm_r_flex','leg-l':'leg_l','leg-r':'leg_r'};
+    Object.entries(fields).forEach(([id,key])=>{const el=$(`m-${id}`);if(el)el.value=m[key]||'';});
     this.openModal('modal-measurements');
   },
 
   async saveMeasurements(){
     if(!S.user.body_measurements)S.user.body_measurements={};
-    const fields=['chest','waist','hip','arm','leg'];
-    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f]=val;});
-    // Save history
+    const fields=['chest','abdomen','waist','shoulder-l','shoulder-r','arm-l','arm-r','arm-l-flex','arm-r-flex','leg-l','leg-r'];
+    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f.replace('-','_')]=val;});
     if(!S.user.body_measurements.history)S.user.body_measurements.history=[];
-    S.user.body_measurements.history.push({date:new Date().toISOString().split('T')[0],...Object.fromEntries(fields.map(f=>[f,S.user.body_measurements[f]||null]))});
+    const entry={date:new Date().toISOString().split('T')[0]};
+    fields.forEach(f=>{const val=S.user.body_measurements[f.replace('-','_')];if(val)entry[f.replace('-','_')]=val;});
+    S.user.body_measurements.history.push(entry);
     S.user.body_measurements.history=S.user.body_measurements.history.slice(-30);
-    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas guardadas');
+    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas corporales guardadas');
   },
 
   // ── MUSCLE HEATMAP ──
@@ -1015,171 +957,11 @@ const App={
   },
 
   // ── NAVIGATION ──
-  // ── PLAN SEMANAL ──
-  async renderWeeklyPlan(){
-    const c=$('weekly-plan');if(!c)return;
-    const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-    const dayLabels={monday:'LUN',tuesday:'MAR',wednesday:'MIÉ',thursday:'JUE',friday:'VIE',saturday:'SÁB',sunday:'DOM'};
-    const rts = await DB.getRoutines();
-    const today = days[new Date().getDay()===0?6:new Date().getDay()-1];
-    c.innerHTML = days.map(day=>{
-      const dayRts = rts.filter(r=>(r.day_of_week||r.day)===day);
-      const anyRts = rts.filter(r=>(r.day_of_week||r.day)==='any');
-      const allRts = [...dayRts, ...anyRts];
-      const isToday = day === today;
-      const exCount = allRts[0] ? (allRts[0].exercises||[]).filter(e=>e.type!=='circuit_break').length : 0;
-      return `<div class="wp-day${isToday?' wp-today':''}" onclick="${allRts[0]?`App.startRoutine('${allRts[0].id}')`:''}" style="${allRts[0]?'cursor:pointer':'opacity:0.4'}">
-        <div class="wp-day-label${isToday?' wp-today-label':''}">${dayLabels[day]}</div>
-        ${allRts[0]
-          ? `<div class="wp-routine-name">${allRts[0].name.split(' ')[0].slice(0,8)}</div>
-             <div class="wp-ex-count">${exCount} ejs</div>
-             ${isToday?'<div class="wp-today-badge">HOY</div>':''}`
-          : `<div class="wp-rest">😴</div><div class="wp-rest-label">Descanso</div>`}
-      </div>`;
-    }).join('');
-  },
-
-  // ── SUPERSETS / DROPSETS ──
-  toggleSuperset(xi){
-    if(!S.workLog[xi])return;
-    S.workLog[xi].isSuperset = !S.workLog[xi].isSuperset;
-    if(S.workLog[xi].isSuperset && S.workLog[xi+1]){
-      S.workLog[xi].supersetWith = S.workLog[xi+1]?.name;
-    }
-    this.renderLog();toast(S.workLog[xi].isSuperset?'🔗 Superset activado':'Superset desactivado');
-  },
-
-  toggleDropset(xi){
-    if(!S.workLog[xi])return;
-    S.workLog[xi].isDropset = !S.workLog[xi].isDropset;
-    this.renderLog();toast(S.workLog[xi].isDropset?'⬇️ Dropset activado':'Dropset desactivado');
-  },
-
-  // ── RPE ──
-  setRPE(xi, si, rpe){
-    if(S.workLog[xi]?.sets?.[si]) S.workLog[xi].sets[si].rpe = rpe;
-    // Close RPE picker
-    document.querySelectorAll('.rpe-picker').forEach(p=>p.classList.add('hidden'));
-    this.renderLog();
-  },
-
-  // ── PROGRESIÓN AUTOMÁTICA ──
-  getSuggestedWeight(exId){
-    const ex = EX_DB.find(e=>e.id===exId);if(!ex?.track)return null;
-    const record = S.user?.records?.[ex.track];if(!record)return null;
-    // Suggest 2.5kg more than last session record
-    return Math.round((record + 2.5) * 2) / 2;
-  },
-
-  // ── ESTADÍSTICAS DE MÚSCULO ──
-  async renderMuscleStats(){
-    const c=$('muscle-stats');if(!c)return;
-    const hist = await DB.getWorkoutHistory(S.user?.id, 0);
-    const muscleVol = {};
-    // Get last 4 weeks of workouts with exercises
-    for(const sess of hist.slice(0,20)){
-      const detail = await DB.getWorkoutDetail(sess.id);
-      (detail?.exercises||[]).forEach(ex=>{
-        const dbEx = EX_DB.find(d=>d.name===ex.name);if(!dbEx)return;
-        const vol = (ex.sets||[]).reduce((s,set)=>s+(set.weight||0)*(set.reps||0),0);
-        muscleVol[dbEx.muscle] = (muscleVol[dbEx.muscle]||0) + vol;
-      });
-    }
-    const total = Object.values(muscleVol).reduce((a,b)=>a+b,1);
-    const sorted = Object.entries(muscleVol).sort((a,b)=>b[1]-a[1]);
-    if(sorted.length===0){c.innerHTML='<p style="color:var(--wdim);font-size:12px;text-align:center;padding:10px">Completa sesiones para ver estadísticas</p>';return;}
-    c.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">` +
-      sorted.map(([m,vol])=>{
-        const pct = Math.round(vol/total*100);
-        return `<div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-            <span style="color:${MUSCLE_COLORS[m]||'var(--gold)'}">${ML[m]||m}</span>
-            <span style="color:var(--wdim)">${pct}% · ${Math.round(vol/1000)}t</span>
-          </div>
-          <div style="height:6px;background:var(--d3);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:${MUSCLE_COLORS[m]||'var(--gold)'};border-radius:3px;transition:width .5s"></div>
-          </div>
-        </div>`;
-      }).join('') + `</div>`;
-  },
-
-  // ── NOTIFICACIONES PUSH ──
-  async openNotifSettings(){
-    const sched = PushNotif.getSchedule();
-    $('notif-hour').value = sched.hour;
-    $('notif-min').value = String(sched.minute).padStart(2,'0');
-    $('notif-toggle').checked = sched.enabled;
-    this.openModal('modal-notif-settings');
-  },
-
-  async saveNotifSettings(){
-    const enabled = $('notif-toggle')?.checked;
-    const hour = parseInt($('notif-hour')?.value || '8');
-    const min = parseInt($('notif-min')?.value || '0');
-    if(enabled){
-      const granted = await PushNotif.requestPermission();
-      if(!granted){ toast('Activa los permisos de notificación en tu dispositivo'); return; }
-      await PushNotif.scheduleDaily(hour, min);
-      toast(`🔔 Te recordaremos entrenar a las ${pad(hour)}:${pad(min)}`);
-    } else {
-      PushNotif.disable();
-      toast('🔕 Recordatorios desactivados');
-    }
-    this.closeModal('modal-notif-settings');
-    await this.updateProfile();
-  },
-
-  // ── EXPORT PDF (rutina) ──
-  async exportRoutinePDF(id){
-    const rts = await DB.getRoutines();
-    const r = rts.find(x=>x.id===id);if(!r)return;
-    const exs = (r.exercises||[]).filter(e=>e.type!=='circuit_break');
-    // Generate printable HTML and open in new tab
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${r.name}</title>
-    <style>body{font-family:Arial,sans-serif;max-width:600px;margin:20px auto;color:#1a1a1a}
-    h1{color:#b8860b;font-size:22px;border-bottom:2px solid #b8860b;padding-bottom:8px}
-    h3{color:#444;font-size:14px;margin-bottom:4px}.ex{background:#f9f9f9;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:10px}
-    .tag{display:inline-block;background:#b8860b;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;margin-right:5px}
-    .set-row{display:flex;gap:10px;padding:4px 0;font-size:13px;border-bottom:1px solid #eee}
-    .set-row:last-child{border-bottom:none}.footer{margin-top:20px;font-size:11px;color:#999;text-align:center}</style>
-    </head><body>
-    <h1>🦁 ${r.name}</h1>
-    <p><strong>Día:</strong> ${DAL[r.day_of_week||r.day]||r.day_of_week} | <strong>Tipo:</strong> ${r.type} | <strong>Ejercicios:</strong> ${exs.length}</p>
-    ${exs.map((ex,i)=>`<div class="ex">
-      <h3>${i+1}. ${ex.emoji||'💪'} ${ex.name}</h3>
-      <span class="tag">${ML[ex.muscle]||ex.muscle}</span>
-      <span class="tag">${EQL[ex.equip]||ex.equip}</span>
-      ${ex.plannedSets?`<p style="font-size:13px;margin:6px 0">📋 ${ex.plannedSets} series × ${ex.plannedReps} reps | ⏱️ ${ex.restSec}s descanso ${ex.weight?'| ⚖️ '+ex.weight+'kg sugerido':''}</p>`:''}
-      ${ex.inst?`<p style="font-size:12px;color:#666;margin-top:4px">${ex.inst}</p>`:''}
-      <table style="width:100%;margin-top:8px;border-collapse:collapse">
-        <tr style="background:#f0e8c4;font-size:12px"><th style="padding:4px;text-align:left">Serie</th><th style="padding:4px">Peso (kg)</th><th style="padding:4px">Reps</th><th style="padding:4px">RPE</th></tr>
-        ${Array(ex.plannedSets||3).fill(0).map((_,i)=>`<tr><td style="padding:4px">Set ${i+1}</td><td style="padding:4px;border:1px solid #ddd;text-align:center"> </td><td style="padding:4px;border:1px solid #ddd;text-align:center"> </td><td style="padding:4px;border:1px solid #ddd;text-align:center"> </td></tr>`).join('')}
-      </table>
-    </div>`).join('')}
-    <div class="footer">Generado por Coach Lion 🦁 | ${new Date().toLocaleDateString('es')}</div>
-    </body></html>`;
-    const win = window.open('','_blank');
-    win.document.write(html);win.document.close();
-    setTimeout(()=>win.print(), 500);
-  },
-
-  // ── BACKUP SEMANAL ──
-  async weeklyBackup(){
-    const lastBackup = localStorage.getItem('cl_last_backup');
-    const weekMs = 7*24*3600*1000;
-    if(lastBackup && Date.now()-parseInt(lastBackup) < weekMs) return;
-    // Export silently to localStorage as JSON string
-    const backup = {date:new Date().toISOString(),user:S.user};
-    try{localStorage.setItem('cl_backup',JSON.stringify(backup));localStorage.setItem('cl_last_backup',Date.now());}catch(e){}
-  },
-
   async goTo(page){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
     $('page-'+page)?.classList.add('active');
     document.querySelector(`.nb[data-p="${page}"]`)?.classList.add('active');
-    if(page==='weekly-plan')await this.renderWeeklyPlan();
-    if(page==='stats')await this.renderMuscleStats();
     if(page==='achievements')await this.renderAchs();
     if(page==='routines')await this.renderRoutines();
     if(page==='progress'){await this.renderCharts();await this.renderPhotos();}
@@ -1268,13 +1050,6 @@ const App={
     this.updateHeader();await this.updateHome();
     S.workLog=[];
     toast(`🏋️ Sesión #${u.sessions} · ${Math.round(vol).toLocaleString()} kg · ${pad(Math.floor(dur/60))}:${pad(dur%60)}`);
-    // Notify coach via message
-    if(!S.isCoach){
-      try{
-        const{data:coachUser}=await sb.from('users').select('id').eq('username',COACH_USERNAME).single();
-        if(coachUser){await DB.sendMessage(coachUser.id,`💪 ${u.name} completó sesión #${u.sessions} — ${Math.round(vol).toLocaleString()} kg · ${pad(Math.floor(dur/60))}:${pad(dur%60)} min`,u.id,u.name);}
-      }catch(e){}
-    }
     this.goTo('home');
   },
 
@@ -1340,30 +1115,94 @@ const App={
   renderLog(){
     const c=$('ex-log');if(!c)return;
     if(S.workLog.length===0){c.innerHTML='<div class="empty-log">Agrega ejercicios para registrar tu sesión 💪</div>';return;}
-    let cn=0;
-    c.innerHTML=S.workLog.map((ex,xi)=>{
-      if(ex.type==='circuit_break'){cn++;return`<div class="circuit-divider">🔄 CIRCUITO ${cn} · ${ex.restSec}s desc.</div>`;}
-      const sets=(ex.sets||[]).map((s,i)=>`<div class="log-set"><span class="sn">${i+1}</span><span class="sw">${s.weight?s.weight+' kg':'PC'}</span><span class="srp">${s.reps} reps</span></div>`).join('');
-      const superBadge = ex.isSuperset?'<span class="badge-ss">🔗 SUPERSET</span>':'';
-      const dropBadge = ex.isDropset?'<span class="badge-ds">⬇️ DROPSET</span>':'';
-      const suggest = App.getSuggestedWeight(ex.id);
-      const suggestTip = suggest?`<div class="suggest-tip">💡 Sugerido hoy: <strong>${suggest}kg</strong></div>`:'';
-      const setRows = (ex.sets||[]).map((s,i)=>{
-        const rpeBtn = `<button class="rpe-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">${s.rpe||'RPE'}</button><div class="rpe-picker hidden">${[6,7,7.5,8,8.5,9,9.5,10].map(r=>`<button onclick="App.setRPE(${xi},${i},${r})">${r}</button>`).join('')}</div>`;
-        return `<div class="log-set"><span class="sn">${i+1}</span><span class="sw">${s.weight?s.weight+' kg':'PC'}</span><span class="srp">${s.reps} reps</span>${rpeBtn}</div>`;
-      }).join('');
-      return`<div class="ex-log-item${ex.isSuperset?' superset-item':''}${ex.isDropset?' dropset-item':''}">
-        <div class="log-head"><div class="log-ico">${ex.emoji}</div>
-        <div style="flex:1;min-width:0"><div class="log-nm">${ex.name} ${superBadge}${dropBadge}</div>
-        <div class="log-mu">${ML[ex.muscle]||ex.muscle}</div>${suggestTip}</div>
-        <div class="log-ex-actions">
-          <button class="btn-xs" onclick="App.toggleSuperset(${xi})" title="Superset">🔗</button>
-          <button class="btn-xs" onclick="App.toggleDropset(${xi})" title="Dropset">⬇️</button>
-        </div></div>
-        ${setRows}<div class="inline-add"><input type="number" placeholder="kg" id="iw${xi}" step="0.5"><input type="number" placeholder="reps" id="ir${xi}"><button class="btn-sm" onclick="App.inlineSet(${xi})">+ SET</button></div></div>`;
-    }).join('');
+    // Group supersets/circuits
+    let html='';let cn=0;let i=0;
+    while(i<S.workLog.length){
+      const ex=S.workLog[i];
+      if(ex.type==='circuit_break'){cn++;html+=`<div class="circuit-divider">🔄 CIRCUITO ${cn} · ${ex.restSec}s desc.</div>`;i++;continue;}
+      // Check if superset group
+      const ssGroup=[];let j=i;
+      while(j<S.workLog.length&&S.workLog[j].type!=='circuit_break'&&(j===i||S.workLog[j].isSuperset||S.workLog[j-1]?.isSuperset)){
+        ssGroup.push({ex:S.workLog[j],xi:j});j++;
+        if(j>i&&!S.workLog[j-1]?.isSuperset)break;
+      }
+      if(ssGroup.length>1){
+        html+=`<div class="superset-group"><div class="ss-group-label">🔗 SUPERSET · ${ssGroup.length} ejercicios</div>`;
+        ssGroup.forEach(({ex:e,xi})=>{html+=this._renderLogItem(e,xi);});
+        html+=`</div>`;i+=ssGroup.length;
+      } else {
+        html+=this._renderLogItem(ex,i);i++;
+      }
+    }
+    c.innerHTML=html;
   },
-  inlineSet(xi){const w=parseFloat($(`iw${xi}`)?.value)||0,r=parseInt($(`ir${xi}`)?.value);if(!r)return;if(!S.workLog[xi].sets)S.workLog[xi].sets=[];S.workLog[xi].sets.push({weight:w,reps:r});this.renderLog();},
+
+  _renderLogItem(ex,xi){
+    const suggest=this.getSuggestedWeight(ex.id);
+    const suggestTip=suggest?`<div class="suggest-tip">💡 Hoy: <strong>${suggest}kg</strong></div>`:'';
+    const badges=[ex.isSuperset?'<span class="badge-ss">🔗 SS</span>':'',ex.isDropset?'<span class="badge-ds">⬇️ DS</span>':''].join('');
+    // Sets as rows
+    const setRows=(ex.sets||[]).map((s,si)=>{
+      const rm=s.weight&&s.reps?`<span class="set-rm">${(s.weight*(1+s.reps/30)).toFixed(0)}kg 1RM</span>`:'';
+      const rpeLabel=s.rpe?`<span class="set-rpe">RPE ${s.rpe}</span>`:'';
+      return`<div class="set-row-manual">
+        <span class="set-num">SET ${si+1}</span>
+        <span class="set-info">${s.weight?s.weight+' kg':'PC'} × ${s.reps} reps</span>
+        ${rm}${rpeLabel}
+        <button class="set-del" onclick="App.deleteSet(${xi},${si})">✕</button>
+      </div>`;
+    }).join('');
+    // Inline add row
+    const addRow=`<div class="set-add-row">
+      <input type="number" id="iw${xi}" placeholder="kg" step="2.5" class="set-input-kg">
+      <span class="set-x">×</span>
+      <input type="number" id="ir${xi}" placeholder="reps" class="set-input-reps">
+      <button class="btn-add-set" onclick="App.inlineSet(${xi})">+ SET</button>
+    </div>`;
+    return`<div class="ex-log-item${ex.isSuperset?' is-superset':''}${ex.isDropset?' is-dropset':''}">
+      <div class="log-head">
+        <div class="log-ico">${ex.imageData?`<img src="${ex.imageData}" alt="">`:(ex.emoji||'💪')}</div>
+        <div class="log-info">
+          <div class="log-nm">${ex.name}${badges}</div>
+          <div class="log-mu">${ML[ex.muscle]||ex.muscle}${suggest?` · 💡 ${suggest}kg sugerido`:''}</div>
+        </div>
+        <div class="log-ex-btns">
+          <button class="btn-xs${ex.isSuperset?' active':''}" onclick="App.toggleSuperset(${xi})" title="Superset">🔗</button>
+          <button class="btn-xs${ex.isDropset?' active':''}" onclick="App.toggleDropset(${xi})" title="Dropset">⬇️</button>
+          <button class="btn-xs btn-xs-del" onclick="App.removeFromLog(${xi})" title="Eliminar">🗑️</button>
+        </div>
+      </div>
+      ${setRows}
+      ${addRow}
+    </div>`;
+  },
+
+  deleteSet(xi,si){
+    if(!S.workLog[xi]?.sets)return;
+    S.workLog[xi].sets.splice(si,1);
+    this.renderLog();
+  },
+
+  removeFromLog(xi){
+    S.workLog.splice(xi,1);
+    this.renderLog();
+    toast('Ejercicio eliminado del log');
+  },
+
+  // (renderLog_old removed)
+  inlineSet(xi){
+    const w=parseFloat($(`iw${xi}`)?.value)||0;
+    const r=parseInt($(`ir${xi}`)?.value);
+    if(!r)return toast('Ingresa las repeticiones');
+    if(!S.workLog[xi])return;
+    if(!S.workLog[xi].sets)S.workLog[xi].sets=[];
+    const set={weight:w,reps:r};
+    S.workLog[xi].sets.push(set);
+    // Auto 1RM toast
+    if(w>0){const rm=(w*(1+r/30)).toFixed(1);toast(`✅ Set ${S.workLog[xi].sets.length} — 1RM est: ${rm}kg`);}
+    else toast(`✅ Set ${S.workLog[xi].sets.length} registrado`);
+    this.renderLog();
+  },
 
   // ── TIMER — sincronizado con HTML ──
   setRest(sec,btn){
@@ -1444,8 +1283,14 @@ const App={
 
   async loadPreset(idx){
     const preset=PRESET_ROUTINES[idx];if(!preset)return;
-    await DB.saveRoutine({name:preset.name,type:preset.type,day:preset.day,exercises:preset.exercises.map(e=>({...e,sets:[]}))});
-    this.closeModal('modal-presets');await this.renderRoutines();toast(`✅ "${preset.name}" cargada`);
+    toast('⏳ Cargando plantilla...');
+    try{
+      const exs=preset.exercises.map(e=>({...e,sets:[]}));
+      const saved=await DB.saveRoutine({name:preset.name,type:preset.type,day:preset.day,exercises:exs,circuitRest:90});
+      this.closeModal('modal-presets');
+      await this.renderRoutines();
+      toast(`✅ "${preset.name}" cargada — ${exs.length} ejercicios`);
+    }catch(e){toast('Error cargando plantilla: '+e.message);}
   },
 
   openCreateRoutine(){S.rnExs=[];$('rn-name').value='';$('rn-exlist').innerHTML='';this.openModal('modal-routine');},
@@ -1628,12 +1473,48 @@ const App={
 
   showAchPopup(a){
     $('pop-ico').textContent=a.icon;$('pop-name').textContent=a.name;$('pop-desc').textContent=a.description||'';$('pop-xp').textContent=`+${a.xp} XP`;
+    // Confetti animation
+    this._launchConfetti();
+    // Celebration sound — applause then roar
+    this._playApplause();
+    setTimeout(()=>playRoar(),1200);
     const ci=$('pop-ch-img');ci?.classList.add('hidden');
     if(a.image_data){ci.innerHTML=`<img src="${a.image_data}" alt="${a.name}">`;ci?.classList.remove('hidden');}
     // Add share button
     const sb2=$('pop-share');if(sb2){sb2.onclick=()=>shareAchievement(a);}
     $('ach-popup')?.classList.remove('hidden');if(navigator.vibrate)navigator.vibrate([100,50,100,50,300]);
   },
+  _launchConfetti(){
+    const c=$('pop-confetti');if(!c)return;
+    c.innerHTML='';
+    const colors=['#f5c518','#ff6f00','#e53935','#9c27b0','#4caf50','#00e5ff','#fff'];
+    for(let i=0;i<40;i++){
+      const el=document.createElement('div');
+      el.className='confetti-piece';
+      el.style.cssText=`left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-delay:${Math.random()*0.6}s;animation-duration:${0.8+Math.random()*1}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+      c.appendChild(el);
+    }
+    setTimeout(()=>{if(c)c.innerHTML='';},3000);
+  },
+
+  _playApplause(){
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      // Applause: burst of filtered noise
+      const buf=ctx.createBuffer(1,ctx.sampleRate*1.5,ctx.sampleRate);
+      const data=buf.getChannelData(0);
+      for(let i=0;i<data.length;i++){
+        const env=i<ctx.sampleRate*0.3?i/(ctx.sampleRate*0.3):i<ctx.sampleRate*1.1?1:(data.length-i)/(ctx.sampleRate*0.4);
+        data[i]=(Math.random()*2-1)*env*0.4;
+      }
+      const src=ctx.createBufferSource();src.buffer=buf;
+      const filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=3000;filter.Q.value=0.5;
+      const gain=ctx.createGain();gain.gain.value=0.6;
+      src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
+      src.start();src.stop(ctx.currentTime+1.5);
+    }catch(e){}
+  },
+
   closeAchPopup(){$('ach-popup')?.classList.add('hidden');this.updateHeader();},
 
   async addXP(amt){
@@ -1790,8 +1671,6 @@ const App={
   // ── CHAT ──
   async renderChat(){
     const c=$('chat-messages');if(!c)return;
-    // Mark as read when opening
-    await DB.markMessagesRead(S.user?.id);
     const msgs=await DB.getMessages(S.user?.id);
     if(msgs.length===0){c.innerHTML='<div class="empty-log" style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:10px">💬</div><p>Sin mensajes todavía</p><p style="font-size:11px;color:var(--wdim);margin-top:6px">Tu coach puede enviarte mensajes aquí</p></div>';return;}
     const myId=S.user?.id;
@@ -1820,64 +1699,15 @@ const App={
   async cBMI(){const w=parseFloat($('c-bw2')?.value),h=parseFloat($('c-bh')?.value);if(!w||!h)return toast('Completa los campos');const bmi=(w/Math.pow(h/100,2)).toFixed(1);const cat=bmi<18.5?'Bajo peso':bmi<25?'Peso saludable ✅':bmi<30?'Sobrepeso':bmi<35?'Obesidad I':'Obesidad II+';const col=bmi<18.5?'#00e5ff':bmi<25?'#76ff03':bmi<30?'#f5c518':bmi<35?'#ff9800':'#e53935';if(S.user){S.user.bmi=bmi;await DB.saveUser(S.user);}$('calc-out').innerHTML=`<div class="calc-res"><div class="calc-val" style="color:${col}">${bmi}</div><div class="calc-lbl">${cat}</div></div>`;},
 
   // ── COACH PANEL ──
-  // ── INVITE CODE MANAGEMENT ──
-  renderInviteCodes(){
-    const custom = localStorage.getItem('cl_invite_codes');
-    const codes = custom ? JSON.parse(custom) : INVITE_CODES;
-    const required = localStorage.getItem('cl_invite_required') !== '0';
-    const c=$('invite-codes-list');if(!c)return;
-    c.innerHTML=`
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:13px">Requerir código:</span>
-        <label class="toggle-sw"><input type="checkbox" id="invite-required" ${required?'checked':''} onchange="App.toggleInviteRequired()"><span class="toggle-slider"></span></label>
-      </div>
-      ${codes.map((code,i)=>`<div class="code-row"><span class="code-val">${code}</span><button class="btn-danger-sm" onclick="App.removeInviteCode(${i})">✕</button></div>`).join('')}
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <input id="new-code-input" type="text" placeholder="Nuevo código..." style="flex:1;background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:13px;padding:9px;outline:none">
-        <button class="btn-sm" onclick="App.addInviteCode()">+ AÑADIR</button>
-      </div>`;
-  },
-
-  toggleInviteRequired(){
-    const val = $('invite-required')?.checked;
-    localStorage.setItem('cl_invite_required', val?'1':'0');
-    toast(val?'🔒 Registro requiere código':'🔓 Registro abierto');
-  },
-
-  addInviteCode(){
-    const code = v('new-code-input');if(!code||code.length<3)return toast('El código debe tener al menos 3 caracteres');
-    const custom = localStorage.getItem('cl_invite_codes');
-    const codes = custom ? JSON.parse(custom) : [...INVITE_CODES];
-    if(codes.includes(code.toUpperCase()))return toast('Ese código ya existe');
-    codes.push(code.toUpperCase());
-    localStorage.setItem('cl_invite_codes',JSON.stringify(codes));
-    this.renderInviteCodes();toast(`✅ Código "${code.toUpperCase()}" añadido`);
-  },
-
-  removeInviteCode(idx){
-    const custom = localStorage.getItem('cl_invite_codes');
-    const codes = custom ? JSON.parse(custom) : [...INVITE_CODES];
-    codes.splice(idx,1);
-    localStorage.setItem('cl_invite_codes',JSON.stringify(codes));
-    this.renderInviteCodes();toast('🗑️ Código eliminado');
-  },
-
   async renderCoach(){
     const users=await DB.getAllUsers();const c=$('athletes-list');if(!c)return;
-    // Search filter
-    const searchQ = $('athlete-search')?.value?.toLowerCase()||'';
-    const filtered = searchQ ? users.filter(u=>u.name.toLowerCase().includes(searchQ)||u.username.toLowerCase().includes(searchQ)||(u.goal&&GL[u.goal]?.toLowerCase().includes(searchQ))) : users;
-    // Goal filter
-    const goalQ = $('athlete-goal-filter')?.value||'all';
-    const displayed = goalQ==='all' ? filtered : filtered.filter(u=>u.goal===goalQ);
-    c.innerHTML=displayed.length===0?'<div class="empty-log">No hay atletas que coincidan</div>':displayed.map(u=>`<div class="ath-card"><div class="ath-ico">🦁</div><div class="ath-info"><div class="ath-name">${u.name} <span style="color:var(--gold);font-size:11px">@${u.username}</span></div><div class="ath-stats">⚡ ${u.xp||0} XP · 💪 ${u.sessions||0} ses · 🔥 ${u.streak||0}d racha</div><div class="ath-goal">${GL[u.goal]||'Sin objetivo'} · ${u.weight||'?'}kg · Nv.${Math.floor((u.xp||0)/1000)+1}</div></div><button class="btn-sm" onclick="App.msgAthlete('${u.id}','${u.name}')">💬</button></div>`).join('');
+    c.innerHTML=users.length===0?'<div class="empty-log">No hay atletas registrados aún</div>':users.map(u=>`<div class="ath-card"><div class="ath-ico">🦁</div><div class="ath-info"><div class="ath-name">${u.name} <span style="color:var(--gold);font-size:11px">@${u.username}</span></div><div class="ath-stats">⚡ ${u.xp||0} XP · 💪 ${u.sessions||0} ses · 🔥 ${u.streak||0}d racha</div><div class="ath-goal">${GL[u.goal]||'Sin objetivo'} · ${u.weight||'?'}kg · Nv.${Math.floor((u.xp||0)/1000)+1}</div></div><button class="btn-sm" onclick="App.msgAthlete('${u.id}','${u.name}')">💬</button></div>`).join('');
     const opts=users.map(u=>`<option value="${u.id}">${u.name} (@${u.username})</option>`).join('');
     if($('assign-user'))$('assign-user').innerHTML='<option value="">Atleta...</option>'+opts;
     if($('msg-user'))$('msg-user').innerHTML='<option value="">Atleta...</option>'+opts;
     const rts=await DB.getRoutines();
     if($('assign-routine'))$('assign-routine').innerHTML='<option value="">Rutina...</option>'+rts.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
     await this.renderCoachRoutines();await this.renderCoachChallenges();await this.renderCoachAchievements();await this.renderCoachMessages();
-    this.renderInviteCodes();
   },
   msgAthlete(uid,name){if($('msg-user'))$('msg-user').value=uid;this.coachTab('messages',document.querySelector('.ctab[onclick*="messages"]'));if($('msg-text'))$('msg-text').focus();toast(`💬 Enviando mensaje a ${name}`);},
   async renderCoachRoutines(){
