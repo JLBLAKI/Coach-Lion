@@ -2,35 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-
-<!-- PWA — instalación como app nativa -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="theme-color" content="#08080f">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
-
-<!-- iOS / Safari — crítico para instalar sin URL de Chrome -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lion">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<link rel="apple-touch-startup-image" href="apple-touch-icon.png">
-
-<!-- Android / Chrome — íconos -->
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="shortcut icon" href="favicon-32.png">
-
-<!-- SEO / Social -->
-<title>Coach Lion 🦁 — Tu Entrenador Personal</title>
-<meta name="description" content="Tu entrenador fitness personal. Rutinas, retos, recetas y seguimiento de progreso.">
-<meta name="application-name" content="Coach Lion">
-
-<!-- Fonts -->
+<title>COACH LION 🦁</title>
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
@@ -41,7 +20,8 @@
 <div id="splash" class="splash">
   <div class="splash-rays"></div>
   <div class="splash-content">
-    <div class="splash-lion">🦁</div>
+    <img src="icon-192.png" alt="Coach Lion" class="splash-icon-img" 
+       onerror="this.style.display='none'">
     <p class="splash-welcome">BIENVENIDO AL</p>
     <h1 class="splash-title">RETO</h1>
     <p class="splash-sub">COACH LION · UNLEASH YOUR BEAST</p>
@@ -310,6 +290,23 @@
       </div>
     </div>
 
+    <!-- AI COACH PAGE -->
+    <div id="page-ai-coach" class="page">
+      <div class="scroll">
+        <div class="sec-row">
+          <h2 class="page-title">🤖 COACH IA</h2>
+          <button class="btn-sm" onclick="S.user&&(S.user.ai_chat_history=[]);App.renderAICoachChat()">🗑️</button>
+        </div>
+        <p class="page-sub">Tu entrenador personal con inteligencia artificial</p>
+        <div id="ai-coach-messages" class="ai-chat-list"></div>
+        <div class="chat-input-row">
+          <input id="ai-coach-input" type="text" placeholder="Pregunta algo a tu coach..." class="chat-field"
+            onkeydown="if(event.key==='Enter')App.sendAICoachMsg()">
+          <button class="btn-sm" onclick="App.sendAICoachMsg()">📤</button>
+        </div>
+      </div>
+    </div>
+
     <!-- CHAT (bidireccional atleta <-> coach) -->
     <div id="page-chat" class="page">
       <div class="scroll">
@@ -412,6 +409,7 @@
     <button class="nb" onclick="App.goTo('workout')" data-p="workout"><span>⚡</span><span>ENTRENA</span></button>
     <button class="nb" onclick="App.goTo('routines')" data-p="routines"><span>📋</span><span>RUTINAS</span></button>
     <button class="nb" onclick="App.goTo('recipes')" data-p="recipes"><span>🥗</span><span>RECETAS</span></button>
+    <button class="nb" onclick="App.goTo('ai-coach')" data-p="ai-coach"><span>🤖</span><span>IA</span></button>
     <button class="nb" onclick="App.goTo('achievements')" data-p="achievements"><span>🏆</span><span>LOGROS</span></button>
   </nav>
 </div>

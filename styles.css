@@ -541,106 +541,28 @@ input,select,textarea{font-family:var(--fu);font-size:15px}button{font-family:va
   .auth-wrap{padding-bottom:max(env(safe-area-inset-bottom),24px)}
 }
 
-/* ═══════════════════════════════
-   COACH LION v12 — NEW STYLES
-   ═══════════════════════════════ */
+/* ── SPLASH ICON ── */
+.splash-icon-img{width:110px;height:110px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 40px rgba(245,197,24,.5);animation:splash-pop .6s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes splash-pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 
-/* ── EXERCISE SEARCH GRID ── */
-.ex-res-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding:4px 0}
-.ex-res-grid .ex-card{display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--d3);border:1px solid var(--border);border-radius:12px;padding:10px 6px;cursor:pointer;transition:border-color .2s,transform .15s;gap:4px}
-.ex-res-grid .ex-card:active{transform:scale(0.97);border-color:var(--gold)}
-.ex-res-grid .ex-card:hover{border-color:var(--borderb)}
-.ex-res-grid .ex-ico{font-size:28px}
-.ex-res-grid .ex-nm{font-family:var(--fd);font-size:11px;letter-spacing:1px;line-height:1.2}
-.ex-res-grid .ex-mu{font-size:9px;color:var(--wdim)}
-.ex-res-grid .ex-diff{font-size:9px;color:var(--gold);margin-top:2px}
+/* ── AI COACH CHAT ── */
+.ai-chat-list{display:flex;flex-direction:column;gap:10px;min-height:300px;margin-bottom:12px;padding:4px 0}
+.ai-msg{display:flex;flex-direction:column;max-width:85%}
+.ai-msg.user{align-self:flex-end}
+.ai-msg.coach{align-self:flex-start}
+.ai-bubble{padding:11px 15px;border-radius:18px;font-size:13px;line-height:1.55;word-break:break-word}
+.ai-msg.user .ai-bubble{background:var(--gold);color:#000;border-bottom-right-radius:4px;font-weight:600}
+.ai-msg.coach .ai-bubble{background:var(--d3);border:1px solid var(--border);border-bottom-left-radius:4px}
+.ai-thinking{opacity:.7;font-style:italic}
+.ai-welcome{text-align:center;padding:20px 10px}
+.ai-suggestion{background:var(--d3);border:1px solid var(--borderb);border-radius:20px;color:var(--wdim);font-size:11px;padding:7px 12px;cursor:pointer;text-align:left;transition:all .2s}
+.ai-suggestion:active{border-color:var(--gold);color:var(--gold)}
 
-/* ── WORKOUT LOG — MANUAL SETS ── */
-.ex-log-item{background:var(--d2);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:8px}
-.ex-log-item.is-superset{border-left:3px solid #00e5ff}
-.ex-log-item.is-dropset{border-left:3px solid #e53935}
-.log-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
-.log-ico{width:38px;height:38px;border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--d3);font-size:22px;flex-shrink:0}
-.log-ico img{width:100%;height:100%;object-fit:cover}
-.log-info{flex:1;min-width:0}
-.log-nm{font-family:var(--fd);font-size:14px;letter-spacing:1px;margin-bottom:2px}
-.log-mu{font-size:10px;color:var(--wdim)}
-.log-ex-btns{display:flex;gap:4px;flex-shrink:0}
-.btn-xs{background:var(--d3);border:1px solid var(--border);border-radius:6px;color:var(--wdim);font-size:11px;padding:4px 7px;cursor:pointer;transition:all .15s}
-.btn-xs.active{background:rgba(245,197,24,.2);border-color:var(--gold);color:var(--gold)}
-.btn-xs-del{color:#e5393530}
-.btn-xs-del:hover{color:#e53935;border-color:#e53935}
-.set-row-manual{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--d3);border-radius:8px;margin-bottom:5px;font-size:12px}
-.set-num{font-family:var(--fu);font-size:10px;color:var(--gold);font-weight:700;min-width:38px}
-.set-info{flex:1;font-weight:600}
-.set-rm{font-size:9px;color:var(--wdim);background:var(--d2);border-radius:4px;padding:1px 5px}
-.set-rpe{font-size:9px;color:#ff6f00;background:rgba(255,111,0,.1);border-radius:4px;padding:1px 5px}
-.set-del{background:none;border:none;color:#e5393550;font-size:13px;cursor:pointer;padding:0 4px;margin-left:auto}
-.set-del:hover{color:#e53935}
-.set-add-row{display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
-.set-input-kg{width:72px;background:var(--d3);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:var(--fu);font-size:14px;font-weight:700;padding:8px;outline:none;text-align:center}
-.set-input-reps{width:60px;background:var(--d3);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:var(--fu);font-size:14px;font-weight:700;padding:8px;outline:none;text-align:center}
-.set-input-kg:focus,.set-input-reps:focus{border-color:var(--gold)}
-.set-x{color:var(--wdim);font-size:14px;font-weight:700}
-.btn-add-set{flex:1;background:var(--gdim);border:1px solid var(--borderb);border-radius:8px;color:var(--gold);font-family:var(--fu);font-size:12px;font-weight:700;padding:8px;cursor:pointer;letter-spacing:1px;transition:all .15s}
-.btn-add-set:active{background:rgba(245,197,24,.3);transform:scale(0.97)}
-.suggest-tip{font-size:10px;color:#4caf50;margin-top:2px}
-.superset-group{border:2px solid #00e5ff20;border-radius:14px;padding:8px;margin-bottom:8px}
-.ss-group-label{font-family:var(--fu);font-size:10px;color:#00e5ff;letter-spacing:2px;margin-bottom:8px;text-align:center}
+/* ── SKELETON LOADING ── */
+.skeleton-row{height:48px;background:linear-gradient(90deg,var(--d2) 25%,var(--d3) 50%,var(--d2) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:10px;margin-bottom:8px}
+@keyframes skeleton-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ── ACHIEVEMENT POPUP ── */
-.popup-app-brand{font-family:var(--fd);font-size:14px;letter-spacing:4px;color:var(--gold);text-shadow:0 0 20px rgba(245,197,24,.6),0 0 40px rgba(245,197,24,.3);margin-bottom:4px;text-transform:uppercase}
-.popup-app-brand span{color:#fff;text-shadow:0 0 15px rgba(255,255,255,.4)}
-.popup-ico-wrap{position:relative;display:flex;align-items:center;justify-content:center;margin:8px 0}
-.popup-ico-ring{position:absolute;width:90px;height:90px;border-radius:50%;border:3px solid var(--gold);animation:ring-pulse 1s ease-out infinite;opacity:.5}
-@keyframes ring-pulse{0%{transform:scale(0.8);opacity:.8}100%{transform:scale(1.4);opacity:0}}
-.popup-ico{font-size:62px;position:relative;z-index:1;animation:icon-bounce 0.6s cubic-bezier(0.34,1.56,0.64,1)}
-@keyframes icon-bounce{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
-.popup-actions{display:flex;gap:8px;margin-top:12px;width:100%}
-.popup-share-btn{flex:1;background:var(--d3);border:1px solid var(--borderb);border-radius:12px;color:var(--white);font-family:var(--fu);font-size:12px;font-weight:700;padding:12px;cursor:pointer;letter-spacing:1px}
-.popup-epic-btn{flex:2;background:linear-gradient(135deg,var(--gold),#d4a800);border:none;border-radius:12px;color:#000;font-family:var(--fu);font-size:14px;font-weight:700;padding:12px;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 20px rgba(245,197,24,.4)}
-.popup-epic-btn:active{transform:scale(0.97)}
-
-/* ── CONFETTI ── */
-.popup-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:10}
-.confetti-piece{position:absolute;top:-10px;animation:confetti-fall linear forwards}
-@keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(120%) rotate(720deg);opacity:0}}
-
-/* ── DARK / LIGHT MODE ── */
-:root[data-theme="light"]{--d1:#f0f0f0;--d2:#fff;--d3:#e8e8e8;--white:#1a1a1a;--wdim:#666;--border:rgba(0,0,0,.12);--borderb:rgba(0,0,0,.25);--gdim:rgba(180,140,0,.12)}
-:root[data-theme="light"] body{background:var(--d1)}
-:root[data-theme="light"] .bnav{background:#fff;border-top:1px solid rgba(0,0,0,.1)}
-:root[data-theme="light"] .card{background:#fff}
-:root[data-theme="light"] .modal-card{background:#fff}
-:root[data-theme="light"] .rc{background:#fff}
-:root[data-theme="light"] .ex-log-item{background:#fff}
-
-/* ── TOGGLE SWITCH ── */
-.toggle-sw{position:relative;display:inline-block;width:46px;height:26px}
-.toggle-sw input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--d3);border-radius:26px;transition:.3s;border:1px solid var(--border)}
-.toggle-slider:before{content:"";position:absolute;height:20px;width:20px;left:2px;bottom:2px;background:var(--wdim);border-radius:50%;transition:.3s}
-.toggle-sw input:checked+.toggle-slider{background:rgba(245,197,24,.25);border-color:var(--gold)}
-.toggle-sw input:checked+.toggle-slider:before{transform:translateX(20px);background:var(--gold)}
-
-/* ── INVITE CODES ── */
-.code-row{display:flex;align-items:center;justify-content:space-between;background:var(--d3);border-radius:9px;padding:8px 12px;margin-bottom:6px}
-.code-val{font-family:var(--fu);font-size:14px;font-weight:700;letter-spacing:3px;color:var(--gold)}
-
-/* ── ATHLETE FILTERS ── */
-.athlete-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.athlete-filters input,.athlete-filters select{background:var(--d3);border:1px solid var(--border);border-radius:9px;color:var(--white);font-family:var(--fu);font-size:12px;padding:8px;outline:none}
-.athlete-filters input{flex:1;min-width:0}
-
-/* ── WEEKLY PLAN ── */
-.weekly-plan-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
-.wp-day{background:var(--d2);border:1px solid var(--border);border-radius:10px;padding:6px 3px;text-align:center;min-height:86px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;transition:border-color .2s}
-.wp-today{border-color:var(--gold);background:rgba(245,197,24,.07)}
-.wp-day-label{font-family:var(--fu);font-size:8px;font-weight:700;color:var(--wdim);letter-spacing:1px}
-.wp-today-label{color:var(--gold)}
-.wp-routine-name{font-family:var(--fd);font-size:9px;letter-spacing:0.5px;color:var(--white);word-break:break-all;text-align:center;line-height:1.2}
-.wp-ex-count{font-size:8px;color:var(--wdim)}
-.wp-today-badge{background:var(--gold);color:#000;font-family:var(--fu);font-size:7px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:1px;margin-top:2px}
-.wp-rest{font-size:16px}
-.wp-rest-label{font-size:8px;color:var(--wdim)}
-
+/* ── PAGE TRANSITIONS ── */
+.page{transition:opacity .2s ease}
+.page.active{animation:page-in .25s ease}
+@keyframes page-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}

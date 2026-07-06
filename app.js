@@ -234,16 +234,35 @@ const DB={
   async logout(){await sb.auth.signOut();Cache.del('user');},
 
   async getSession(){
-    // Cache agresivo — solo refresca si pasaron 30 minutos
     const cached=Cache.get('user');
     const lastRefresh=Cache.get('user_refreshed');
+    // Cache válido de 30 min → retornar inmediatamente
     if(cached&&lastRefresh&&Date.now()-lastRefresh<30*60*1000)return cached;
-    const{data}=await sb.auth.getSession();
-    if(data.session){
-      const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
-      if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());return p;}
+    // Hay cache pero expiró → retornar cache y refrescar en background
+    if(cached){
+      setTimeout(async()=>{
+        try{
+          const{data}=await sb.auth.getSession();
+          if(data?.session){
+            const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
+            if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());}
+          }
+        }catch(e){}
+      },200);
+      return cached;
     }
-    return cached;
+    // Sin cache → intentar Supabase con timeout de 3.5s
+    try{
+      const{data}=await Promise.race([
+        sb.auth.getSession(),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),3500))
+      ]);
+      if(data?.session){
+        const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
+        if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());return p;}
+      }
+    }catch(e){console.warn('getSession:',e.message);}
+    return null;
   },
 
   async resetPassword(email){
@@ -544,27 +563,19 @@ async function generateAIImage(prompt,name,icon){
 
 // ── GEMINI TEXT ──
 async function askGemini(prompt,sys){
-  if(!GEMINI_KEY||GEMINI_KEY==='YOUR_GEMINI_KEY')return null;
+  if(!GEMINI_KEY)return null;
   try{
     const fullPrompt=sys?`${sys}\n\n${prompt}`:prompt;
-    const models=['gemini-1.5-flash-latest','gemini-1.5-flash','gemini-pro'];
-    for(const model of models){
-      try{
-        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}})
-        });
-        if(!res.ok)continue;
-        const data=await res.json();
-        const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-        if(!text)continue;
-        return JSON.parse(text.replace(/```json|```/g,'').trim());
-      }catch(modelErr){continue;}
-    }
-    return null;
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}})
+    });
+    if(!res.ok){const err=await res.json().catch(()=>({}));console.warn('Gemini err:',err?.error?.message||res.status);return null;}
+    const data=await res.json();
+    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    return JSON.parse(text.replace(/```json|```/g,'').trim());
   }catch(e){console.warn('askGemini:',e.message);return null;}
 }
-
 
 // ── VOICE TIMER (síntesis de voz) ──
 function speak(text){
@@ -629,7 +640,6 @@ function toast(msg){
 const App={
 
   async init(){
-    Theme.init();
     this.buildMFilters();this.buildAchFilters();this.buildRecipeFilters();
     this.setupOffline();this.setupPWAInstall();
     // Restore offline queue from localStorage
@@ -637,10 +647,26 @@ const App={
     // Restore timer if app was closed mid-session
     const saved=localStorage.getItem('cl_sess_start');
     if(saved){S.sessActive=true;S.sessStart=parseInt(saved);S.sessTimer=setInterval(()=>this.tickSess(),1000);}
+    // Failsafe: ocultar splash siempre aunque falle algo
+    const _hideSplash=()=>{
+      const sp=$('splash');
+      if(sp){sp.style.opacity='0';sp.style.transition='opacity .4s';setTimeout(()=>{sp.style.display='none';},400);}
+    };
+    // Failsafe de 5 segundos
+    const _splashKill=setTimeout(()=>{_hideSplash();this.showScr('auth');},5000);
     setTimeout(async()=>{
-      const sp=$('splash');sp.style.cssText='opacity:0;transition:opacity .5s;position:fixed;inset:0;z-index:9999;pointer-events:none';
-      setTimeout(async()=>{sp.style.display='none';if(!localStorage.getItem('cl_onboarded'))this.showOnboarding();else await this.checkSess();},500);
-    },2900);
+      _hideSplash();
+      setTimeout(async()=>{
+        clearTimeout(_splashKill);
+        try{
+          if(!localStorage.getItem('cl_onboarded'))this.showOnboarding();
+          else await this.checkSess();
+        }catch(e){
+          console.error('Init error:',e);
+          this.showScr('auth');
+        }
+      },450);
+    },1800);
   },
 
   setupPWAInstall(){
@@ -666,23 +692,45 @@ const App={
 
   async checkSess(){
     try{
-      const profile=await DB.getSession();
-      if(profile){S.user=profile;this.enterApp();}
-      else{this.showScr('auth');if(Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');if(location.search.includes('reset=1'))this.showResetForm();}
-    }catch(e){this.showScr('auth');}
+      // Timeout de 4s para no quedar pegado si Supabase tarda
+      const profile=await Promise.race([
+        DB.getSession(),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000))
+      ]);
+      if(profile){S.user=profile;await this.enterApp();}
+      else{
+        this.showScr('auth');
+        if(Bio&&Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');
+        if(location.search.includes('reset=1'))this.showResetForm();
+      }
+    }catch(e){
+      console.warn('checkSess:',e.message);
+      this.showScr('auth');
+      if(Bio&&Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');
+    }
   },
 
   showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$(id)?.classList.remove('hidden');},
 
   async enterApp(){
-    this.showScr('app');
-    S.isCoach=S.user.username===COACH_USERNAME;
-    if(S.isCoach){$('coach-btn')?.classList.remove('hidden');$('coach-nav')?.classList.remove('hidden');}
-    await this.updateHeader();
-    await this.updateHome();
-    this.checkCoachMsg();this.checkNotif();this.buildChartSel();
-    if('wakeLock' in navigator)this.reqWL();
-    if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+    try{
+      this.showScr('app');
+      S.isCoach=S.user.username===COACH_USERNAME;
+      if(S.isCoach){$('coach-btn')?.classList.remove('hidden');$('coach-nav')?.classList.remove('hidden');}
+      // Header primero (rápido, sin queries)
+      this.updateHeader();
+      // Home en background para no bloquear UI
+      setTimeout(async()=>{
+        try{await this.updateHome();}catch(e){console.warn('updateHome:',e);}
+      },50);
+      this.checkCoachMsg();this.checkNotif();this.buildChartSel();
+      if('wakeLock' in navigator)this.reqWL();
+      if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }catch(e){
+      console.error('enterApp error:',e);
+      toast('Error al cargar. Intenta de nuevo.');
+      this.showScr('auth');
+    }
   },
 
   showReg(){$('form-login')?.classList.add('hidden');$('form-reg')?.classList.remove('hidden');},
@@ -810,8 +858,6 @@ const App={
     const bioReg=Bio.isRegistered(),bioAvail=await Bio.isAvailable();
     $('p-settings').innerHTML=[
       {i:'⚖️',l:'Registrar peso de hoy',f:'App.logWeight()'},
-      {i:'🔔',l:'Recordatorio de entrenamiento',f:'App.openNotifSettings()'},
-      {i:Theme.current()==='dark'?'☀️':'🌙',l:Theme.current()==='dark'?'Modo claro':'Modo oscuro',f:'App.toggleTheme()'},
       {i:'📐',l:'Medidas corporales',f:'App.openMeasurements()'},
       bioAvail&&!bioReg?{i:'👁️',l:'Activar Face ID / Huella',f:'App.saveBiometric()'}:null,
       bioAvail&&bioReg?{i:'🔓',l:'Desactivar Face ID / Huella',f:'App.removeBiometric()'}:null,
@@ -823,39 +869,6 @@ const App={
     ].filter(Boolean).map(s=>`<div class="setting${s.d?' danger':''}" onclick="${s.f}"><span>${s.i} ${s.l}</span><span class="s-arr">›</span></div>`).join('');
     // Weight log mini chart
     this.renderWeightMini();
-  },
-
-  toggleTheme(){
-    const t=Theme.toggle();toast(t==='dark'?'🌙 Modo oscuro':'☀️ Modo claro');
-    setTimeout(()=>this.updateProfile(),100);
-  },
-
-  async openNotifSettings(){
-    const sched=PushNotif.getSchedule();
-    let displayHour=sched.hour,ampm='am';
-    if(sched.hour>=12){ampm='pm';displayHour=sched.hour===12?12:sched.hour-12;}
-    if(sched.hour===0){displayHour=12;ampm='am';}
-    const h=$('notif-hour');if(h)h.value=displayHour;
-    const m=$('notif-min');if(m)m.value=String(sched.minute).padStart(2,'0');
-    const ap=$('notif-ampm');if(ap)ap.value=ampm;
-    const t=$('notif-toggle');if(t)t.checked=sched.enabled;
-    this.openModal('modal-notif-settings');
-  },
-
-  async saveNotifSettings(){
-    const enabled=$('notif-toggle')?.checked;
-    let hour=parseInt($('notif-hour')?.value||'8');
-    const min=parseInt($('notif-min')?.value||'0');
-    const ampm=$('notif-ampm')?.value||'am';
-    if(ampm==='pm'&&hour!==12)hour+=12;
-    if(ampm==='am'&&hour===12)hour=0;
-    if(enabled){
-      const granted=await PushNotif.requestPermission();
-      if(!granted){toast('Activa los permisos de notificación en Ajustes del dispositivo');return;}
-      await PushNotif.scheduleDaily(hour,min);
-      toast(`🔔 Recordatorio: ${$('notif-hour')?.value}:${String(min).padStart(2,'0')} ${ampm.toUpperCase()}`);
-    }else{PushNotif.disable();toast('🔕 Recordatorios desactivados');}
-    this.closeModal('modal-notif-settings');await this.updateProfile();
   },
 
   async togglePrivacy(){
@@ -901,21 +914,20 @@ const App={
   // ── MEDIDAS CORPORALES ──
   openMeasurements(){
     const m=S.user?.body_measurements||{};
-    const fields={chest:'chest',abdomen:'abdomen',waist:'waist','shoulder-l':'shoulder_l','shoulder-r':'shoulder_r','arm-l':'arm_l','arm-r':'arm_r','arm-l-flex':'arm_l_flex','arm-r-flex':'arm_r_flex','leg-l':'leg_l','leg-r':'leg_r'};
-    Object.entries(fields).forEach(([id,key])=>{const el=$(`m-${id}`);if(el)el.value=m[key]||'';});
+    $('m-chest').value=m.chest||'';$('m-waist').value=m.waist||'';
+    $('m-hip').value=m.hip||'';$('m-arm').value=m.arm||'';$('m-leg').value=m.leg||'';
     this.openModal('modal-measurements');
   },
 
   async saveMeasurements(){
     if(!S.user.body_measurements)S.user.body_measurements={};
-    const fields=['chest','abdomen','waist','shoulder-l','shoulder-r','arm-l','arm-r','arm-l-flex','arm-r-flex','leg-l','leg-r'];
-    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f.replace('-','_')]=val;});
+    const fields=['chest','waist','hip','arm','leg'];
+    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f]=val;});
+    // Save history
     if(!S.user.body_measurements.history)S.user.body_measurements.history=[];
-    const entry={date:new Date().toISOString().split('T')[0]};
-    fields.forEach(f=>{const val=S.user.body_measurements[f.replace('-','_')];if(val)entry[f.replace('-','_')]=val;});
-    S.user.body_measurements.history.push(entry);
+    S.user.body_measurements.history.push({date:new Date().toISOString().split('T')[0],...Object.fromEntries(fields.map(f=>[f,S.user.body_measurements[f]||null]))});
     S.user.body_measurements.history=S.user.body_measurements.history.slice(-30);
-    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas corporales guardadas');
+    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas guardadas');
   },
 
   // ── MUSCLE HEATMAP ──
@@ -958,6 +970,7 @@ const App={
 
   // ── NAVIGATION ──
   async goTo(page){
+    if(navigator.vibrate)navigator.vibrate(8); // haptic
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
     $('page-'+page)?.classList.add('active');
@@ -970,6 +983,7 @@ const App={
     if(page==='leaderboard')await this.renderLeaderboard();
     if(page==='recipes')await this.renderRecipes();
     if(page==='chat')await this.renderChat();
+    if(page==='ai-coach'){this.renderAICoachChat();}
     if(page==='history')await this.renderHistory(0);
   },
 
@@ -1115,94 +1129,14 @@ const App={
   renderLog(){
     const c=$('ex-log');if(!c)return;
     if(S.workLog.length===0){c.innerHTML='<div class="empty-log">Agrega ejercicios para registrar tu sesión 💪</div>';return;}
-    // Group supersets/circuits
-    let html='';let cn=0;let i=0;
-    while(i<S.workLog.length){
-      const ex=S.workLog[i];
-      if(ex.type==='circuit_break'){cn++;html+=`<div class="circuit-divider">🔄 CIRCUITO ${cn} · ${ex.restSec}s desc.</div>`;i++;continue;}
-      // Check if superset group
-      const ssGroup=[];let j=i;
-      while(j<S.workLog.length&&S.workLog[j].type!=='circuit_break'&&(j===i||S.workLog[j].isSuperset||S.workLog[j-1]?.isSuperset)){
-        ssGroup.push({ex:S.workLog[j],xi:j});j++;
-        if(j>i&&!S.workLog[j-1]?.isSuperset)break;
-      }
-      if(ssGroup.length>1){
-        html+=`<div class="superset-group"><div class="ss-group-label">🔗 SUPERSET · ${ssGroup.length} ejercicios</div>`;
-        ssGroup.forEach(({ex:e,xi})=>{html+=this._renderLogItem(e,xi);});
-        html+=`</div>`;i+=ssGroup.length;
-      } else {
-        html+=this._renderLogItem(ex,i);i++;
-      }
-    }
-    c.innerHTML=html;
-  },
-
-  _renderLogItem(ex,xi){
-    const suggest=this.getSuggestedWeight(ex.id);
-    const suggestTip=suggest?`<div class="suggest-tip">💡 Hoy: <strong>${suggest}kg</strong></div>`:'';
-    const badges=[ex.isSuperset?'<span class="badge-ss">🔗 SS</span>':'',ex.isDropset?'<span class="badge-ds">⬇️ DS</span>':''].join('');
-    // Sets as rows
-    const setRows=(ex.sets||[]).map((s,si)=>{
-      const rm=s.weight&&s.reps?`<span class="set-rm">${(s.weight*(1+s.reps/30)).toFixed(0)}kg 1RM</span>`:'';
-      const rpeLabel=s.rpe?`<span class="set-rpe">RPE ${s.rpe}</span>`:'';
-      return`<div class="set-row-manual">
-        <span class="set-num">SET ${si+1}</span>
-        <span class="set-info">${s.weight?s.weight+' kg':'PC'} × ${s.reps} reps</span>
-        ${rm}${rpeLabel}
-        <button class="set-del" onclick="App.deleteSet(${xi},${si})">✕</button>
-      </div>`;
+    let cn=0;
+    c.innerHTML=S.workLog.map((ex,xi)=>{
+      if(ex.type==='circuit_break'){cn++;return`<div class="circuit-divider">🔄 CIRCUITO ${cn} · ${ex.restSec}s desc.</div>`;}
+      const sets=(ex.sets||[]).map((s,i)=>`<div class="log-set"><span class="sn">${i+1}</span><span class="sw">${s.weight?s.weight+' kg':'PC'}</span><span class="srp">${s.reps} reps</span></div>`).join('');
+      return`<div class="ex-log-item"><div class="log-head"><div class="log-ico">${ex.emoji}</div><div style="flex:1;min-width:0"><div class="log-nm">${ex.name}</div><div class="log-mu">${ML[ex.muscle]||ex.muscle}</div></div></div>${sets}<div class="inline-add"><input type="number" placeholder="kg" id="iw${xi}" step="0.5"><input type="number" placeholder="reps" id="ir${xi}"><button class="btn-sm" onclick="App.inlineSet(${xi})">+ SET</button></div></div>`;
     }).join('');
-    // Inline add row
-    const addRow=`<div class="set-add-row">
-      <input type="number" id="iw${xi}" placeholder="kg" step="2.5" class="set-input-kg">
-      <span class="set-x">×</span>
-      <input type="number" id="ir${xi}" placeholder="reps" class="set-input-reps">
-      <button class="btn-add-set" onclick="App.inlineSet(${xi})">+ SET</button>
-    </div>`;
-    return`<div class="ex-log-item${ex.isSuperset?' is-superset':''}${ex.isDropset?' is-dropset':''}">
-      <div class="log-head">
-        <div class="log-ico">${ex.imageData?`<img src="${ex.imageData}" alt="">`:(ex.emoji||'💪')}</div>
-        <div class="log-info">
-          <div class="log-nm">${ex.name}${badges}</div>
-          <div class="log-mu">${ML[ex.muscle]||ex.muscle}${suggest?` · 💡 ${suggest}kg sugerido`:''}</div>
-        </div>
-        <div class="log-ex-btns">
-          <button class="btn-xs${ex.isSuperset?' active':''}" onclick="App.toggleSuperset(${xi})" title="Superset">🔗</button>
-          <button class="btn-xs${ex.isDropset?' active':''}" onclick="App.toggleDropset(${xi})" title="Dropset">⬇️</button>
-          <button class="btn-xs btn-xs-del" onclick="App.removeFromLog(${xi})" title="Eliminar">🗑️</button>
-        </div>
-      </div>
-      ${setRows}
-      ${addRow}
-    </div>`;
   },
-
-  deleteSet(xi,si){
-    if(!S.workLog[xi]?.sets)return;
-    S.workLog[xi].sets.splice(si,1);
-    this.renderLog();
-  },
-
-  removeFromLog(xi){
-    S.workLog.splice(xi,1);
-    this.renderLog();
-    toast('Ejercicio eliminado del log');
-  },
-
-  // (renderLog_old removed)
-  inlineSet(xi){
-    const w=parseFloat($(`iw${xi}`)?.value)||0;
-    const r=parseInt($(`ir${xi}`)?.value);
-    if(!r)return toast('Ingresa las repeticiones');
-    if(!S.workLog[xi])return;
-    if(!S.workLog[xi].sets)S.workLog[xi].sets=[];
-    const set={weight:w,reps:r};
-    S.workLog[xi].sets.push(set);
-    // Auto 1RM toast
-    if(w>0){const rm=(w*(1+r/30)).toFixed(1);toast(`✅ Set ${S.workLog[xi].sets.length} — 1RM est: ${rm}kg`);}
-    else toast(`✅ Set ${S.workLog[xi].sets.length} registrado`);
-    this.renderLog();
-  },
+  inlineSet(xi){const w=parseFloat($(`iw${xi}`)?.value)||0,r=parseInt($(`ir${xi}`)?.value);if(!r)return;if(!S.workLog[xi].sets)S.workLog[xi].sets=[];S.workLog[xi].sets.push({weight:w,reps:r});this.renderLog();},
 
   // ── TIMER — sincronizado con HTML ──
   setRest(sec,btn){
@@ -1283,14 +1217,8 @@ const App={
 
   async loadPreset(idx){
     const preset=PRESET_ROUTINES[idx];if(!preset)return;
-    toast('⏳ Cargando plantilla...');
-    try{
-      const exs=preset.exercises.map(e=>({...e,sets:[]}));
-      const saved=await DB.saveRoutine({name:preset.name,type:preset.type,day:preset.day,exercises:exs,circuitRest:90});
-      this.closeModal('modal-presets');
-      await this.renderRoutines();
-      toast(`✅ "${preset.name}" cargada — ${exs.length} ejercicios`);
-    }catch(e){toast('Error cargando plantilla: '+e.message);}
+    await DB.saveRoutine({name:preset.name,type:preset.type,day:preset.day,exercises:preset.exercises.map(e=>({...e,sets:[]}))});
+    this.closeModal('modal-presets');await this.renderRoutines();toast(`✅ "${preset.name}" cargada`);
   },
 
   openCreateRoutine(){S.rnExs=[];$('rn-name').value='';$('rn-exlist').innerHTML='';this.openModal('modal-routine');},
@@ -1473,48 +1401,12 @@ const App={
 
   showAchPopup(a){
     $('pop-ico').textContent=a.icon;$('pop-name').textContent=a.name;$('pop-desc').textContent=a.description||'';$('pop-xp').textContent=`+${a.xp} XP`;
-    // Confetti animation
-    this._launchConfetti();
-    // Celebration sound — applause then roar
-    this._playApplause();
-    setTimeout(()=>playRoar(),1200);
     const ci=$('pop-ch-img');ci?.classList.add('hidden');
     if(a.image_data){ci.innerHTML=`<img src="${a.image_data}" alt="${a.name}">`;ci?.classList.remove('hidden');}
     // Add share button
     const sb2=$('pop-share');if(sb2){sb2.onclick=()=>shareAchievement(a);}
     $('ach-popup')?.classList.remove('hidden');if(navigator.vibrate)navigator.vibrate([100,50,100,50,300]);
   },
-  _launchConfetti(){
-    const c=$('pop-confetti');if(!c)return;
-    c.innerHTML='';
-    const colors=['#f5c518','#ff6f00','#e53935','#9c27b0','#4caf50','#00e5ff','#fff'];
-    for(let i=0;i<40;i++){
-      const el=document.createElement('div');
-      el.className='confetti-piece';
-      el.style.cssText=`left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-delay:${Math.random()*0.6}s;animation-duration:${0.8+Math.random()*1}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-      c.appendChild(el);
-    }
-    setTimeout(()=>{if(c)c.innerHTML='';},3000);
-  },
-
-  _playApplause(){
-    try{
-      const ctx=new(window.AudioContext||window.webkitAudioContext)();
-      // Applause: burst of filtered noise
-      const buf=ctx.createBuffer(1,ctx.sampleRate*1.5,ctx.sampleRate);
-      const data=buf.getChannelData(0);
-      for(let i=0;i<data.length;i++){
-        const env=i<ctx.sampleRate*0.3?i/(ctx.sampleRate*0.3):i<ctx.sampleRate*1.1?1:(data.length-i)/(ctx.sampleRate*0.4);
-        data[i]=(Math.random()*2-1)*env*0.4;
-      }
-      const src=ctx.createBufferSource();src.buffer=buf;
-      const filter=ctx.createBiquadFilter();filter.type='bandpass';filter.frequency.value=3000;filter.Q.value=0.5;
-      const gain=ctx.createGain();gain.gain.value=0.6;
-      src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
-      src.start();src.stop(ctx.currentTime+1.5);
-    }catch(e){}
-  },
-
   closeAchPopup(){$('ach-popup')?.classList.add('hidden');this.updateHeader();},
 
   async addXP(amt){
@@ -1667,6 +1559,62 @@ const App={
     toast(`✅ Receta "${name}" guardada`);S.recipeGenImg=null;S.editingRecipeId=null;
   },
   async delRecipe(id){if(!confirm('¿Eliminar receta?'))return;await DB.deleteRecipe(id);await this.renderRecipes();toast('🗑️ Receta eliminada');},
+
+  // ── AI COACH CHAT ──
+  async sendAICoachMsg(){
+    const input=$('ai-coach-input');
+    const txt=input?.value?.trim();if(!txt)return;
+    input.value='';
+    const c=$('ai-coach-messages');if(!c)return;
+    c.innerHTML+=`<div class="ai-msg user"><div class="ai-bubble">${txt}</div></div>`;
+    c.scrollTop=c.scrollHeight;
+    const thinkId='think_'+Date.now();
+    c.innerHTML+=`<div class="ai-msg coach" id="${thinkId}"><div class="ai-bubble ai-thinking">🦁 Analizando...</div></div>`;
+    c.scrollTop=c.scrollHeight;
+    const u=S.user||{};
+    const ctx=`Eres el Coach Lion, entrenador personal experto, motivador y directo. 
+Datos del atleta: Nombre=${u.name||'atleta'}, Objetivo=${u.goal||'no definido'}, 
+Peso=${u.weight||'?'}kg, Altura=${u.height||'?'}cm, Sesiones=${u.sessions||0}, 
+Racha=${u.streak||0} días, Récords=${JSON.stringify(u.records||{})}.
+Responde en español, máximo 3 oraciones cortas, motivador y específico.
+IMPORTANTE: Responde solo texto plano, sin JSON, sin markdown.`;
+    try{
+      // Para texto plano NO usar responseMimeType json
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:ctx+'\n\nPregunta del atleta: '+txt}]}],generationConfig:{temperature:0.8,maxOutputTokens:200}})
+      });
+      const data=await res.json();
+      const reply=data?.candidates?.[0]?.content?.parts?.[0]?.text||'No pude responder. Intenta de nuevo.';
+      const el=document.getElementById(thinkId);
+      if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 ${reply.trim()}</div></div>`;
+      if(!u.ai_chat_history)u.ai_chat_history=[];
+      u.ai_chat_history.push({role:'user',text:txt,ts:Date.now()},{role:'coach',text:reply.trim(),ts:Date.now()});
+      u.ai_chat_history=u.ai_chat_history.slice(-30);
+    }catch(e){
+      const el=document.getElementById(thinkId);
+      if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 Error de conexión. Verifica tu internet.</div></div>`;
+    }
+    c.scrollTop=c.scrollHeight;
+  },
+
+  renderAICoachChat(){
+    const c=$('ai-coach-messages');if(!c)return;
+    const hist=S.user?.ai_chat_history||[];
+    if(hist.length===0){
+      c.innerHTML=`<div class="ai-welcome">
+        <div style="font-size:50px;margin-bottom:10px">🦁</div>
+        <div style="font-family:var(--fd);font-size:20px;letter-spacing:2px;color:var(--gold);margin-bottom:8px">COACH LION IA</div>
+        <p style="font-size:12px;color:var(--wdim);line-height:1.7;margin-bottom:14px">Tu entrenador personal con inteligencia artificial. Pregúntame sobre entrenamiento, nutrición o motivación.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
+          ${['¿Qué ejercicio mejora mis hombros?','Dame tips para ganar masa muscular','¿Cómo mejorar mi bench press?','¿Qué comer antes de entrenar?','Motívame para hoy'].map(q=>`<button class="ai-suggestion" onclick="document.getElementById('ai-coach-input').value='${q}';App.sendAICoachMsg()">${q}</button>`).join('')}
+        </div>
+      </div>`;
+      return;
+    }
+    c.innerHTML=hist.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'coach'}"><div class="ai-bubble">${m.role!=='user'?'🦁 ':''}${m.text}</div></div>`).join('');
+    c.scrollTop=c.scrollHeight;
+  },
 
   // ── CHAT ──
   async renderChat(){
