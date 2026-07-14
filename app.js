@@ -234,35 +234,16 @@ const DB={
   async logout(){await sb.auth.signOut();Cache.del('user');},
 
   async getSession(){
+    // Cache agresivo — solo refresca si pasaron 30 minutos
     const cached=Cache.get('user');
     const lastRefresh=Cache.get('user_refreshed');
-    // Cache válido de 30 min → retornar inmediatamente
     if(cached&&lastRefresh&&Date.now()-lastRefresh<30*60*1000)return cached;
-    // Hay cache pero expiró → retornar cache y refrescar en background
-    if(cached){
-      setTimeout(async()=>{
-        try{
-          const{data}=await sb.auth.getSession();
-          if(data?.session){
-            const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
-            if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());}
-          }
-        }catch(e){}
-      },200);
-      return cached;
+    const{data}=await sb.auth.getSession();
+    if(data.session){
+      const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
+      if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());return p;}
     }
-    // Sin cache → intentar Supabase con timeout de 3.5s
-    try{
-      const{data}=await Promise.race([
-        sb.auth.getSession(),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),3500))
-      ]);
-      if(data?.session){
-        const{data:p}=await sb.from('users').select('*').eq('id',data.session.user.id).single();
-        if(p){Cache.set('user',p);Cache.set('user_refreshed',Date.now());return p;}
-      }
-    }catch(e){console.warn('getSession:',e.message);}
-    return null;
+    return cached;
   },
 
   async resetPassword(email){
@@ -562,19 +543,44 @@ async function generateAIImage(prompt,name,icon){
 }
 
 // ── GEMINI TEXT ──
+// Gemini JSON (recetas, rutinas)
 async function askGemini(prompt,sys){
   if(!GEMINI_KEY)return null;
-  try{
-    const fullPrompt=sys?`${sys}\n\n${prompt}`:prompt;
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500,responseMimeType:'application/json'}})
-    });
-    if(!res.ok){const err=await res.json().catch(()=>({}));console.warn('Gemini err:',err?.error?.message||res.status);return null;}
-    const data=await res.json();
-    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    return JSON.parse(text.replace(/```json|```/g,'').trim());
-  }catch(e){console.warn('askGemini:',e.message);return null;}
+  const MODELS=['gemini-1.5-flash','gemini-1.5-flash-8b','gemini-pro'];
+  for(const model of MODELS){
+    try{
+      const fullPrompt=sys?`${sys}\n\n${prompt}`:prompt;
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:fullPrompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:1500}})
+      });
+      if(!res.ok)continue;
+      const data=await res.json();
+      const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      if(!text)continue;
+      try{return JSON.parse(text.replace(/```json|```/g,'').trim());}catch{return null;}
+    }catch(e){continue;}
+  }
+  return null;
+}
+
+// Gemini texto libre (chat IA coach)
+async function askGeminiText(prompt){
+  if(!GEMINI_KEY)return null;
+  const MODELS=['gemini-1.5-flash','gemini-1.5-flash-8b','gemini-pro'];
+  for(const model of MODELS){
+    try{
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.85,maxOutputTokens:250}})
+      });
+      if(!res.ok){const err=await res.json().catch(()=>({}));console.warn(model+':',err?.error?.message);continue;}
+      const data=await res.json();
+      const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      if(text)return text.trim();
+    }catch(e){continue;}
+  }
+  return null;
 }
 
 // ── VOICE TIMER (síntesis de voz) ──
@@ -647,26 +653,10 @@ const App={
     // Restore timer if app was closed mid-session
     const saved=localStorage.getItem('cl_sess_start');
     if(saved){S.sessActive=true;S.sessStart=parseInt(saved);S.sessTimer=setInterval(()=>this.tickSess(),1000);}
-    // Failsafe: ocultar splash siempre aunque falle algo
-    const _hideSplash=()=>{
-      const sp=$('splash');
-      if(sp){sp.style.opacity='0';sp.style.transition='opacity .4s';setTimeout(()=>{sp.style.display='none';},400);}
-    };
-    // Failsafe de 5 segundos
-    const _splashKill=setTimeout(()=>{_hideSplash();this.showScr('auth');},5000);
     setTimeout(async()=>{
-      _hideSplash();
-      setTimeout(async()=>{
-        clearTimeout(_splashKill);
-        try{
-          if(!localStorage.getItem('cl_onboarded'))this.showOnboarding();
-          else await this.checkSess();
-        }catch(e){
-          console.error('Init error:',e);
-          this.showScr('auth');
-        }
-      },450);
-    },1800);
+      const sp=$('splash');sp.style.cssText='opacity:0;transition:opacity .5s;position:fixed;inset:0;z-index:9999;pointer-events:none';
+      setTimeout(async()=>{sp.style.display='none';if(!localStorage.getItem('cl_onboarded'))this.showOnboarding();else await this.checkSess();},500);
+    },2900);
   },
 
   setupPWAInstall(){
@@ -692,22 +682,10 @@ const App={
 
   async checkSess(){
     try{
-      // Timeout de 4s para no quedar pegado si Supabase tarda
-      const profile=await Promise.race([
-        DB.getSession(),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000))
-      ]);
-      if(profile){S.user=profile;await this.enterApp();}
-      else{
-        this.showScr('auth');
-        if(Bio&&Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');
-        if(location.search.includes('reset=1'))this.showResetForm();
-      }
-    }catch(e){
-      console.warn('checkSess:',e.message);
-      this.showScr('auth');
-      if(Bio&&Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');
-    }
+      const profile=await DB.getSession();
+      if(profile){S.user=profile;this.enterApp();}
+      else{this.showScr('auth');if(Bio.isRegistered())$('bio-btn')?.classList.remove('hidden');if(location.search.includes('reset=1'))this.showResetForm();}
+    }catch(e){this.showScr('auth');}
   },
 
   showScr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$(id)?.classList.remove('hidden');},
@@ -717,17 +695,19 @@ const App={
       this.showScr('app');
       S.isCoach=S.user.username===COACH_USERNAME;
       if(S.isCoach){$('coach-btn')?.classList.remove('hidden');$('coach-nav')?.classList.remove('hidden');}
-      // Header primero (rápido, sin queries)
       this.updateHeader();
-      // Home en background para no bloquear UI
-      setTimeout(async()=>{
-        try{await this.updateHome();}catch(e){console.warn('updateHome:',e);}
-      },50);
+      // Home en background — no bloquea UI
+      setTimeout(async()=>{try{await this.updateHome();}catch(e){console.warn('updateHome:',e);}},80);
       this.checkCoachMsg();this.checkNotif();this.buildChartSel();
       if('wakeLock' in navigator)this.reqWL();
       if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
     }catch(e){
-      console.error('enterApp error:',e);
+      console.error('enterApp:',e);
+      // Restaurar cualquier botón deshabilitado
+      const b1=document.querySelector('#form-login .btn-gold');
+      if(b1){b1.textContent='⚡ ENTRAR';b1.disabled=false;}
+      const b2=document.querySelector('#form-reg .btn-gold');
+      if(b2){b2.textContent='🦁 CREAR MI PERFIL';b2.disabled=false;}
       toast('Error al cargar. Intenta de nuevo.');
       this.showScr('auth');
     }
@@ -753,9 +733,21 @@ const App={
   async login(){
     const u=v('l-user'),p=v('l-pass');
     if(!u||!p)return toast('Ingresa usuario y contraseña');
-    const btn=document.querySelector('#form-login .btn-gold');btn.textContent='⏳ ENTRANDO...';btn.disabled=true;
-    try{const{user}=await DB.login(u,p);S.user=user;await this.enterApp();}
-    catch(e){toast(e.message||'Usuario o contraseña incorrectos');btn.textContent='⚡ ENTRAR';btn.disabled=false;}
+    const btn=document.querySelector('#form-login .btn-gold');
+    btn.textContent='⏳ ENTRANDO...';btn.disabled=true;
+    const _restore=()=>{btn.textContent='⚡ ENTRAR';btn.disabled=false;};
+    // Failsafe: siempre restaura botón después de 12s
+    const _timeout=setTimeout(_restore,12000);
+    try{
+      const{user}=await DB.login(u,p);
+      S.user=user;
+      clearTimeout(_timeout);
+      await this.enterApp();
+    }catch(e){
+      clearTimeout(_timeout);
+      _restore();
+      toast(e.message||'Usuario o contraseña incorrectos');
+    }
   },
 
   async forgotPassword(){
@@ -970,7 +962,6 @@ const App={
 
   // ── NAVIGATION ──
   async goTo(page){
-    if(navigator.vibrate)navigator.vibrate(8); // haptic
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
     $('page-'+page)?.classList.add('active');
@@ -1560,7 +1551,7 @@ const App={
   },
   async delRecipe(id){if(!confirm('¿Eliminar receta?'))return;await DB.deleteRecipe(id);await this.renderRecipes();toast('🗑️ Receta eliminada');},
 
-  // ── AI COACH CHAT ──
+  // ── AI COACH ──
   async sendAICoachMsg(){
     const input=$('ai-coach-input');
     const txt=input?.value?.trim();if(!txt)return;
@@ -1572,28 +1563,25 @@ const App={
     c.innerHTML+=`<div class="ai-msg coach" id="${thinkId}"><div class="ai-bubble ai-thinking">🦁 Analizando...</div></div>`;
     c.scrollTop=c.scrollHeight;
     const u=S.user||{};
-    const ctx=`Eres el Coach Lion, entrenador personal experto, motivador y directo. 
-Datos del atleta: Nombre=${u.name||'atleta'}, Objetivo=${u.goal||'no definido'}, 
-Peso=${u.weight||'?'}kg, Altura=${u.height||'?'}cm, Sesiones=${u.sessions||0}, 
-Racha=${u.streak||0} días, Récords=${JSON.stringify(u.records||{})}.
-Responde en español, máximo 3 oraciones cortas, motivador y específico.
-IMPORTANTE: Responde solo texto plano, sin JSON, sin markdown.`;
+    const prompt=`Eres el Coach Lion, entrenador personal experto, motivador y directo.
+Datos del atleta: Nombre=${u.name||'atleta'}, Objetivo=${u.goal||'no definido'}, Peso=${u.weight||'?'}kg, Sesiones=${u.sessions||0}, Racha=${u.streak||0} días.
+Responde en español. Máximo 3 oraciones cortas. Motivador y específico para este atleta.
+Sin asteriscos, sin markdown, solo texto plano.
+Pregunta: ${txt}`;
     try{
-      // Para texto plano NO usar responseMimeType json
-      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:ctx+'\n\nPregunta del atleta: '+txt}]}],generationConfig:{temperature:0.8,maxOutputTokens:200}})
-      });
-      const data=await res.json();
-      const reply=data?.candidates?.[0]?.content?.parts?.[0]?.text||'No pude responder. Intenta de nuevo.';
+      const reply=await askGeminiText(prompt);
       const el=document.getElementById(thinkId);
-      if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 ${reply.trim()}</div></div>`;
-      if(!u.ai_chat_history)u.ai_chat_history=[];
-      u.ai_chat_history.push({role:'user',text:txt,ts:Date.now()},{role:'coach',text:reply.trim(),ts:Date.now()});
-      u.ai_chat_history=u.ai_chat_history.slice(-30);
+      if(reply){
+        if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 ${reply}</div></div>`;
+        if(!u.ai_chat_history)u.ai_chat_history=[];
+        u.ai_chat_history.push({role:'user',text:txt,ts:Date.now()},{role:'coach',text:reply,ts:Date.now()});
+        u.ai_chat_history=u.ai_chat_history.slice(-30);
+      }else{
+        if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 No pude conectar con Gemini. Verifica la GEMINI_KEY en Vercel → Environment Variables.</div></div>`;
+      }
     }catch(e){
       const el=document.getElementById(thinkId);
-      if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 Error de conexión. Verifica tu internet.</div></div>`;
+      if(el)el.outerHTML=`<div class="ai-msg coach"><div class="ai-bubble">🦁 Error: ${e.message}</div></div>`;
     }
     c.scrollTop=c.scrollHeight;
   },
@@ -1605,9 +1593,9 @@ IMPORTANTE: Responde solo texto plano, sin JSON, sin markdown.`;
       c.innerHTML=`<div class="ai-welcome">
         <div style="font-size:50px;margin-bottom:10px">🦁</div>
         <div style="font-family:var(--fd);font-size:20px;letter-spacing:2px;color:var(--gold);margin-bottom:8px">COACH LION IA</div>
-        <p style="font-size:12px;color:var(--wdim);line-height:1.7;margin-bottom:14px">Tu entrenador personal con inteligencia artificial. Pregúntame sobre entrenamiento, nutrición o motivación.</p>
+        <p style="font-size:12px;color:var(--wdim);line-height:1.7;margin-bottom:14px">Tu entrenador personal con inteligencia artificial.</p>
         <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-          ${['¿Qué ejercicio mejora mis hombros?','Dame tips para ganar masa muscular','¿Cómo mejorar mi bench press?','¿Qué comer antes de entrenar?','Motívame para hoy'].map(q=>`<button class="ai-suggestion" onclick="document.getElementById('ai-coach-input').value='${q}';App.sendAICoachMsg()">${q}</button>`).join('')}
+          ${['¿Qué ejercicio mejora mis hombros?','Tips para ganar masa muscular','¿Cómo mejorar mi bench press?','¿Qué comer antes de entrenar?','Motívame para hoy'].map(q=>`<button class="ai-suggestion" onclick="document.getElementById('ai-coach-input').value='${q}';App.sendAICoachMsg()">${q}</button>`).join('')}
         </div>
       </div>`;
       return;

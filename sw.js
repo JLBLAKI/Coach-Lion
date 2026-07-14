@@ -1,6 +1,6 @@
-const CACHE='cl-v13';
+const CACHE='cl-v14';
 const ASSETS=['/','/index.html','/styles.css','/app.js','/manifest.json','/icon-192.png','/icon-512.png','/apple-touch-icon.png','/favicon-32.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS.filter(a=>{return true;}).map(a=>new Request(a,{cache:'reload'})))));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{
   if(e.request.url.includes('supabase.co')||e.request.url.includes('googleapis.com')||e.request.url.includes('fal.run')){
@@ -16,7 +16,7 @@ setInterval(()=>{
   if(!notifSchedule)return;
   const now=new Date();
   if(now.getHours()===notifSchedule.hour&&now.getMinutes()===notifSchedule.minute){
-    self.registration.showNotification('COACH LION 🦁',{body:'¡Es hora de entrenar, bestia! 💪',icon:'/icon-192.png',badge:'/icon-192.png',vibrate:[200,100,200,100,400],tag:'daily-reminder',actions:[{action:'open',title:'Abrir Coach Lion'},{action:'dismiss',title:'Más tarde'}]});
+    self.registration.showNotification('COACH LION 🦁',{body:'¡Es hora de entrenar, bestia! 💪',icon:'/icon-192.png',badge:'/icon-192.png',vibrate:[200,100,200,100,400],tag:'daily-reminder'});
   }
 },60000);
 self.addEventListener('message',e=>{
