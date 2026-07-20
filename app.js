@@ -854,7 +854,7 @@ const App={
       bioAvail&&!bioReg?{i:'👁️',l:'Activar Face ID / Huella',f:'App.saveBiometric()'}:null,
       bioAvail&&bioReg?{i:'🔓',l:'Desactivar Face ID / Huella',f:'App.removeBiometric()'}:null,
       {i:'👁️',l:u.privacy_leaderboard!==false?'Ocultar del ranking':'Mostrar en el ranking',f:'App.togglePrivacy()'},
-      {i:'📸',l:'Fotos de progreso',f:"App.goTo('progress')"},
+
       {i:'📲',l:'Instalar App',f:'App.triggerInstall()'},
       {i:'📤',l:'Exportar datos',f:'App.exportData()'},
       {i:'🚪',l:'Cerrar sesión',f:'App.logout()',d:true},
@@ -968,7 +968,7 @@ const App={
     document.querySelector(`.nb[data-p="${page}"]`)?.classList.add('active');
     if(page==='achievements')await this.renderAchs();
     if(page==='routines')await this.renderRoutines();
-    if(page==='progress'){await this.renderCharts();await this.renderPhotos();}
+    if(page==='progress'){await this.renderCharts();await this.renderPhotos();await this.renderWeightMini();}
     if(page==='coach'&&S.isCoach)await this.renderCoach();
     if(page==='profile')await this.updateProfile();
     if(page==='leaderboard')await this.renderLeaderboard();
@@ -1623,17 +1623,112 @@ Pregunta: ${txt}`;
 
   // ── CALCULATORS ──
   openCalc(t){
-    const titles={'1rm':'🏋️ CALCULADORA 1RM',cal:'🔥 CALORÍAS QUEMADAS',macros:'🥩 MACROS DIARIOS',bmi:'📊 ÍNDICE DE MASA CORPORAL'};
+    const titles={'1rm':'🏋️ 1RM',cal:'🔥 CALORÍAS',macros:'🥩 MACROS',bmi:'📊 IMC'};
     $('calc-title').textContent=titles[t];
     const w=S.user?.weight||'',h=S.user?.height||'',age=S.user?.age||'';
     const b={'1rm':`<div class="calc-sec"><p style="font-size:11px;color:var(--wdim)">Fórmula de Epley: peso × (1 + reps/30)</p><div class="field"><span>⚖️</span><input id="c-w" type="number" placeholder="Peso usado (kg)"></div><div class="field"><span>🔢</span><input id="c-r" type="number" placeholder="Repeticiones"></div><button class="btn-gold" onclick="App.c1rm()">CALCULAR</button><div id="calc-out"></div></div>`,cal:`<div class="calc-sec"><div class="field"><span>⚖️</span><input id="c-bw" type="number" placeholder="Tu peso (kg)" value="${w}"></div><div class="field"><span>⏱️</span><input id="c-min" type="number" placeholder="Duración (min)"></div><div class="field"><span>🏃</span><select id="c-act"><option value="3.5">Pesas moderado</option><option value="5">Pesas intenso</option><option value="7">Cardio moderado</option><option value="10">HIIT</option><option value="12">Correr rápido</option></select></div><button class="btn-gold" onclick="App.cCal()">CALCULAR</button><div id="calc-out"></div></div>`,macros:`<div class="calc-sec"><div class="field"><span>⚖️</span><input id="c-mw" type="number" placeholder="Peso (kg)" value="${w}"></div><div class="field"><span>📏</span><input id="c-mh" type="number" placeholder="Altura (cm)" value="${h}"></div><div class="field"><span>🎂</span><input id="c-ma" type="number" placeholder="Edad" value="${age}"></div><div class="field"><span>⚧️</span><select id="c-mg"><option value="m">Masculino</option><option value="f">Femenino</option></select></div><div class="field"><span>📅</span><select id="c-act2"><option value="1.375">Ligero (1-3/sem)</option><option value="1.55">Moderado (3-5/sem)</option><option value="1.725">Activo (6-7/sem)</option></select></div><button class="btn-gold" onclick="App.cMacros()">CALCULAR</button><div id="calc-out"></div></div>`,bmi:`<div class="calc-sec"><div class="field"><span>⚖️</span><input id="c-bw2" type="number" placeholder="Peso (kg)" value="${w}"></div><div class="field"><span>📏</span><input id="c-bh" type="number" placeholder="Altura (cm)" value="${h}"></div><button class="btn-gold" onclick="App.cBMI()">CALCULAR</button><div id="calc-out"></div></div>`};
     $('calc-body').innerHTML=b[t]||'';this.openModal('modal-calc');
   },
-  c1rm(){const w=parseFloat($('c-w')?.value),r=parseInt($('c-r')?.value);if(!w||!r)return toast('Completa los campos');const rm=(w*(1+r/30)).toFixed(1);$('calc-out').innerHTML=`<div class="calc-res"><div class="calc-val">${rm} kg</div><div class="calc-lbl">1RM estimado · ${Math.round(rm*0.85)} kg × 3 reps · ${Math.round(rm*0.75)} kg × 8 reps</div></div>`;},
-  cCal(){const bw=parseFloat($('c-bw')?.value),min=parseInt($('c-min')?.value),met=parseFloat($('c-act')?.value)||3.5;if(!bw||!min)return toast('Completa los campos');const cal=Math.round(met*bw*min/60*3.5/200*bw);$('calc-out').innerHTML=`<div class="calc-res"><div class="calc-val">${cal} kcal</div><div class="calc-lbl">Estimado en ${min} min</div></div>`;},
-  cMacros(){const w=parseFloat($('c-mw')?.value),h=parseFloat($('c-mh')?.value),a=parseInt($('c-ma')?.value),g=$('c-mg')?.value,act=parseFloat($('c-act2')?.value)||1.55;if(!w||!h||!a)return toast('Completa los campos');const bmr=g==='m'?(10*w)+(6.25*h)-(5*a)+5:(10*w)+(6.25*h)-(5*a)-161;const tdee=Math.round(bmr*act);const goal=S.user?.goal||'hypertrophy';const kcal=goal==='weightloss'?tdee-400:['strength','hypertrophy'].includes(goal)?tdee+200:tdee;const prot=Math.round(w*2.2),fat=Math.round(kcal*0.25/9),carbs=Math.round((kcal-prot*4-fat*9)/4);$('calc-out').innerHTML=`<div class="calc-res"><div class="calc-val">${kcal} kcal</div><div class="calc-lbl">Calorías diarias</div></div><div class="macro-g"><div class="macro-i"><div class="macro-v">${prot}g</div><div class="macro-l">🥩 PROTEÍNA</div></div><div class="macro-i"><div class="macro-v">${carbs}g</div><div class="macro-l">🍚 CARBOS</div></div><div class="macro-i"><div class="macro-v">${fat}g</div><div class="macro-l">🥑 GRASA</div></div></div>`;},
-  async cBMI(){const w=parseFloat($('c-bw2')?.value),h=parseFloat($('c-bh')?.value);if(!w||!h)return toast('Completa los campos');const bmi=(w/Math.pow(h/100,2)).toFixed(1);const cat=bmi<18.5?'Bajo peso':bmi<25?'Peso saludable ✅':bmi<30?'Sobrepeso':bmi<35?'Obesidad I':'Obesidad II+';const col=bmi<18.5?'#00e5ff':bmi<25?'#76ff03':bmi<30?'#f5c518':bmi<35?'#ff9800':'#e53935';if(S.user){S.user.bmi=bmi;await DB.saveUser(S.user);}$('calc-out').innerHTML=`<div class="calc-res"><div class="calc-val" style="color:${col}">${bmi}</div><div class="calc-lbl">${cat}</div></div>`;},
-
+  c1rm(){
+    const w=parseFloat($('c-w')?.value),r=parseInt($('c-r')?.value);
+    if(!w||!r)return toast('Completa los campos');
+    const rm=parseFloat((w*(1+r/30)).toFixed(1));
+    const pcts=[{p:100,l:'1RM Máximo',c:'#f5c518'},{p:95,l:'95% · Fuerza máxima',c:'#ff6f00'},{p:90,l:'90% · Fuerza',c:'#ff9800'},{p:85,l:'85% · Potencia',c:'#4caf50'},{p:80,l:'80% · Hipertrofia',c:'#00bcd4'},{p:75,l:'75% · Volumen',c:'#9c27b0'},{p:70,l:'70% · Resistencia',c:'#607d8b'}];
+    const bars=pcts.map(x=>{const kg=(rm*x.p/100).toFixed(1);const repsEst=x.p>=95?1:x.p>=90?2:x.p>=85?3:x.p>=80?5:x.p>=75?8:x.p>=70?10:12;return`<div class="calc-bar-row"><div class="calc-bar-label"><span style="color:${x.c};font-weight:700">${x.p}%</span><span class="calc-bar-desc">${x.l}</span></div><div class="calc-bar-track"><div class="calc-bar-fill" style="width:${x.p}%;background:${x.c}"></div></div><div class="calc-bar-kg">${kg}kg<span class="calc-reps-hint">~${repsEst}rep</span></div></div>`;}).join('');
+    $('calc-out').innerHTML=`<div class="calc-hero"><div class="calc-hero-val">${rm}</div><div class="calc-hero-unit">kg · 1RM</div></div><div class="calc-bars">${bars}</div>`;
+  },
+  cCal(){
+    const bw=parseFloat($('c-bw')?.value),min=parseInt($('c-min')?.value),met=parseFloat($('c-act')?.value)||3.5;
+    if(!bw||!min)return toast('Completa los campos');
+    const cal=Math.round(met*bw*min/60*3.5/200*bw);
+    const pct=Math.min(cal/800*100,100);
+    const col=cal<200?'#4caf50':cal<400?'#f5c518':cal<600?'#ff9800':'#e53935';
+    const tip=cal<200?'Actividad ligera':'Actividad moderada';
+    $('calc-out').innerHTML=`
+      <div class="calc-hero" style="border-color:${col}">
+        <div class="calc-hero-icon">🔥</div>
+        <div class="calc-hero-val" style="color:${col}">${cal}</div>
+        <div class="calc-hero-unit">kcal quemadas</div>
+        <div class="calc-hero-sub">${min} minutos · ${tip}</div>
+      </div>
+      <div class="calc-ring-wrap">
+        <svg viewBox="0 0 120 120" class="calc-ring-svg">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--d3)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="${col}" stroke-width="10"
+            stroke-dasharray="${2*Math.PI*50}" stroke-dashoffset="${2*Math.PI*50*(1-pct/100)}"
+            stroke-linecap="round" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .8s ease"/>
+        </svg>
+        <div class="calc-ring-label">${Math.round(pct)}%<br><span style="font-size:10px;color:var(--wdim)">del límite</span></div>
+      </div>`;
+  },
+  cMacros(){
+    const w=parseFloat($('c-mw')?.value),h=parseFloat($('c-mh')?.value),a=parseInt($('c-ma')?.value),g=$('c-mg')?.value,act=parseFloat($('c-act2')?.value)||1.55;
+    if(!w||!h||!a)return toast('Completa los campos');
+    const bmr=g==='m'?(10*w)+(6.25*h)-(5*a)+5:(10*w)+(6.25*h)-(5*a)-161;
+    const tdee=Math.round(bmr*act);
+    const goal=S.user?.goal||'hypertrophy';
+    const kcal=goal==='weightloss'?tdee-400:['strength','hypertrophy'].includes(goal)?tdee+200:tdee;
+    const prot=Math.round(w*2.2),fat=Math.round(kcal*0.25/9),carbs=Math.round((kcal-prot*4-fat*9)/4);
+    const protKcal=prot*4,carbsKcal=carbs*4,fatKcal=fat*9,total=protKcal+carbsKcal+fatKcal||1;
+    const protPct=Math.round(protKcal/total*100),carbsPct=Math.round(carbsKcal/total*100),fatPct=Math.round(fatKcal/total*100);
+    // Donut SVG
+    const r=44,circ=2*Math.PI*r;
+    const seg1=circ*protPct/100,seg2=circ*carbsPct/100,seg3=circ*fatPct/100;
+    const off1=0,off2=circ-seg1,off3=circ-(seg1+seg2);
+    $('calc-out').innerHTML=`
+      <div class="calc-hero"><div class="calc-hero-val">${kcal}</div><div class="calc-hero-unit">kcal / día</div><div class="calc-hero-sub">${GL[goal]||goal} · TMB ${Math.round(bmr)} · TDEE ${tdee}</div></div>
+      <div class="macro-donut-wrap">
+        <svg viewBox="0 0 100 100" class="macro-donut">
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#e53935" stroke-width="12" stroke-dasharray="${seg1} ${circ-seg1}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#f5c518" stroke-width="12" stroke-dasharray="${seg2} ${circ-seg2}" stroke-dashoffset="${circ*0.25-seg1}" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#4caf50" stroke-width="12" stroke-dasharray="${seg3} ${circ-seg3}" stroke-dashoffset="${circ*0.25-seg1-seg2}" stroke-linecap="round"/>
+          <text x="50" y="46" text-anchor="middle" font-size="10" fill="var(--white)" font-family="Orbitron,sans-serif">MACROS</text>
+          <text x="50" y="58" text-anchor="middle" font-size="7" fill="var(--wdim)">diarios</text>
+        </svg>
+      </div>
+      <div class="macro-cards">
+        <div class="macro-card" style="border-color:#e53935"><div class="mc-icon">🥩</div><div class="mc-val">${prot}g</div><div class="mc-name">PROTEÍNA</div><div class="mc-pct" style="color:#e53935">${protPct}%</div><div class="mc-kcal">${protKcal} kcal</div></div>
+        <div class="macro-card" style="border-color:#f5c518"><div class="mc-icon">🍚</div><div class="mc-val">${carbs}g</div><div class="mc-name">CARBOS</div><div class="mc-pct" style="color:#f5c518">${carbsPct}%</div><div class="mc-kcal">${carbsKcal} kcal</div></div>
+        <div class="macro-card" style="border-color:#4caf50"><div class="mc-icon">🥑</div><div class="mc-val">${fat}g</div><div class="mc-name">GRASA</div><div class="mc-pct" style="color:#4caf50">${fatPct}%</div><div class="mc-kcal">${fatKcal} kcal</div></div>
+      </div>`;
+  },
+  async cBMI(){
+    const w=parseFloat($('c-bw2')?.value),h=parseFloat($('c-bh')?.value);
+    if(!w||!h)return toast('Completa los campos');
+    const bmi=parseFloat((w/Math.pow(h/100,2)).toFixed(1));
+    const ranges=[
+      {max:16,  label:'Delgadez severa', col:'#0288d1', tip:'Consulta con un médico'},
+      {max:18.5,label:'Bajo peso',        col:'#00bcd4', tip:'Aumenta tu ingesta calórica'},
+      {max:25,  label:'Peso saludable ✅',col:'#4caf50', tip:'¡Mantén ese ritmo!'},
+      {max:30,  label:'Sobrepeso',        col:'#f5c518', tip:'Reduce calorías y entrena'},
+      {max:35,  label:'Obesidad I',       col:'#ff9800', tip:'Busca asesoría nutricional'},
+      {max:999, label:'Obesidad II+',     col:'#e53935', tip:'Consulta con un especialista'},
+    ];
+    const range=ranges.find(r=>bmi<r.max)||ranges[ranges.length-1];
+    const col=range.col;
+    // Gauge: BMI de 15 a 40
+    const minB=15,maxB=40,pct=Math.min(Math.max((bmi-minB)/(maxB-minB)*100,0),100);
+    const gradStops='#0288d1 0%,#00bcd4 15%,#4caf50 35%,#f5c518 60%,#ff9800 75%,#e53935 100%';
+    if(S.user){S.user.bmi=bmi;await DB.saveUser(S.user);}
+    $('calc-out').innerHTML=`
+      <div class="calc-hero" style="border-color:${col}">
+        <div class="calc-hero-val" style="color:${col}">${bmi}</div>
+        <div class="calc-hero-unit">IMC</div>
+        <div class="bmi-badge" style="background:${col}22;color:${col};border:1px solid ${col}">${range.label}</div>
+        <div class="calc-hero-sub" style="margin-top:6px">${range.tip}</div>
+      </div>
+      <div class="bmi-gauge-wrap">
+        <div class="bmi-gauge-track" style="background:linear-gradient(90deg,${gradStops})">
+          <div class="bmi-gauge-needle" style="left:${pct}%"></div>
+        </div>
+        <div class="bmi-gauge-labels">
+          <span>15</span><span>18.5</span><span>25</span><span>30</span><span>35</span><span>40</span>
+        </div>
+      </div>
+      <div class="bmi-scale">
+        ${ranges.slice(0,-1).map(rr=>`<div class="bmi-scale-item${bmi<rr.max&&bmi>=(ranges[ranges.indexOf(rr)-1]?.max||0)?' bmi-active':''}"><div class="bmi-dot" style="background:${rr.col}"></div><span>${rr.label}</span></div>`).join('')}
+      </div>`;
+  },
   // ── COACH PANEL ──
   async renderCoach(){
     const users=await DB.getAllUsers();const c=$('athletes-list');if(!c)return;

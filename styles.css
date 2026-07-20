@@ -558,3 +558,60 @@ input,select,textarea{font-family:var(--fu);font-size:15px}button{font-family:va
 /* ── PAGE TRANSITION ── */
 .page.active{animation:page-in .22s ease}
 @keyframes page-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══════════════════════════════════
+   CALCULADORAS — DISEÑO PREMIUM v15
+   ══════════════════════════════════ */
+
+/* Hero result */
+.calc-hero{text-align:center;padding:20px 16px;background:var(--d3);border-radius:16px;border:2px solid var(--borderb);margin-bottom:14px;position:relative;overflow:hidden}
+.calc-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(245,197,24,.08),transparent 70%);pointer-events:none}
+.calc-hero-icon{font-size:28px;margin-bottom:4px}
+.calc-hero-val{font-family:var(--fd);font-size:48px;letter-spacing:2px;color:var(--gold);line-height:1}
+.calc-hero-unit{font-family:var(--fu);font-size:12px;letter-spacing:3px;color:var(--wdim);margin-top:4px}
+.calc-hero-sub{font-size:11px;color:var(--wdim);margin-top:8px}
+.bmi-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-family:var(--fu);font-size:11px;font-weight:700;letter-spacing:2px;margin-top:8px}
+
+/* 1RM Bars */
+.calc-bars{display:flex;flex-direction:column;gap:8px}
+.calc-bar-row{display:flex;align-items:center;gap:8px}
+.calc-bar-label{width:90px;flex-shrink:0}
+.calc-bar-label span:first-child{font-family:var(--fd);font-size:13px;display:block}
+.calc-bar-desc{font-size:9px;color:var(--wdim);letter-spacing:.5px}
+.calc-bar-track{flex:1;height:8px;background:var(--d3);border-radius:4px;overflow:hidden}
+.calc-bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.calc-bar-kg{font-family:var(--fd);font-size:12px;width:55px;text-align:right;flex-shrink:0}
+.calc-reps-hint{font-size:9px;color:var(--wdim);display:block;text-align:right}
+
+/* Calorías ring */
+.calc-ring-wrap{position:relative;width:120px;height:120px;margin:10px auto 0}
+.calc-ring-svg{width:100%;height:100%}
+.calc-ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--fd);font-size:18px;text-align:center}
+
+/* Macros donut */
+.macro-donut-wrap{display:flex;justify-content:center;margin:8px 0}
+.macro-donut{width:120px;height:120px}
+.macro-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.macro-card{background:var(--d3);border:2px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;transition:transform .2s}
+.macro-card:active{transform:scale(0.97)}
+.mc-icon{font-size:20px;margin-bottom:4px}
+.mc-val{font-family:var(--fd);font-size:20px;letter-spacing:1px}
+.mc-name{font-family:var(--fu);font-size:9px;letter-spacing:2px;color:var(--wdim);margin:2px 0}
+.mc-pct{font-family:var(--fu);font-size:14px;font-weight:700}
+.mc-kcal{font-size:9px;color:var(--wdim);margin-top:2px}
+
+/* BMI Gauge */
+.bmi-gauge-wrap{margin:12px 0 8px}
+.bmi-gauge-track{position:relative;height:14px;border-radius:7px;overflow:visible}
+.bmi-gauge-needle{position:absolute;top:-4px;width:4px;height:22px;background:#fff;border-radius:2px;transform:translateX(-50%);box-shadow:0 2px 6px rgba(0,0,0,.5);transition:left .8s cubic-bezier(.4,0,.2,1)}
+.bmi-gauge-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--wdim);margin-top:6px;padding:0 2px}
+.bmi-scale{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.bmi-scale-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 8px;border-radius:8px;transition:background .2s}
+.bmi-active{background:var(--d3);font-weight:700}
+.bmi-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── NUEVO LOGO en splash ── */
+.splash-icon-img{width:120px;height:120px;border-radius:50%;object-fit:cover;margin-bottom:16px;
+  box-shadow:0 0 0 4px var(--gold),0 0 30px rgba(245,197,24,.4),0 0 60px rgba(245,197,24,.15);
+  animation:splash-pop .7s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes splash-pop{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
