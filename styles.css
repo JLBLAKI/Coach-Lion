@@ -615,3 +615,58 @@ input,select,textarea{font-family:var(--fu);font-size:15px}button{font-family:va
   box-shadow:0 0 0 4px var(--gold),0 0 30px rgba(245,197,24,.4),0 0 60px rgba(245,197,24,.15);
   animation:splash-pop .7s cubic-bezier(0.34,1.56,0.64,1)}
 @keyframes splash-pop{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+
+/* ══════════════════════════════
+   CUERPO — MEDIDAS + FOTOS v16
+   ══════════════════════════════ */
+
+/* BODY TABS */
+.body-tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--d2);border-radius:12px;padding:4px}
+.body-tab{flex:1;padding:9px 6px;border:none;border-radius:9px;background:transparent;color:var(--wdim);font-family:var(--fu);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .2s}
+.body-tab.active{background:var(--gold);color:#000}
+.body-tab-content{display:block}
+.body-tab-content.hidden{display:none}
+
+/* MEASUREMENTS SECTION */
+.meas-section{background:var(--d2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.meas-section-title{font-family:var(--fu);font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:10px;font-weight:700}
+.meas-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.meas-row-2:last-child{margin-bottom:0}
+.meas-field{display:flex;flex-direction:column;gap:4px}
+.meas-field label{font-size:10px;color:var(--wdim);letter-spacing:.5px}
+.mf-wrap{display:flex;align-items:center;background:var(--d3);border:1px solid var(--border);border-radius:9px;overflow:hidden;transition:border-color .2s}
+.mf-wrap:focus-within{border-color:var(--gold)}
+.mf-wrap input{flex:1;background:transparent;border:none;color:var(--white);font-family:var(--fu);font-size:16px;font-weight:700;padding:10px 10px;outline:none;width:100%;min-width:0}
+.mf-wrap span{padding:0 10px 0 4px;font-size:10px;color:var(--wdim);font-family:var(--fu);flex-shrink:0}
+
+/* CURRENT MEASUREMENTS GRID */
+.meas-current-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meas-card{background:var(--d2);border:1px solid var(--border);border-radius:12px;padding:12px;position:relative;overflow:hidden}
+.meas-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold);opacity:.4}
+.meas-card-label{font-size:10px;color:var(--wdim);margin-bottom:4px;letter-spacing:.5px}
+.meas-card-val{font-family:var(--fd);font-size:22px;letter-spacing:1px;color:var(--white);line-height:1}
+.meas-card-unit{font-size:12px;color:var(--wdim);margin-left:2px}
+.meas-diff{font-size:10px;font-weight:700;font-family:var(--fu);padding:2px 6px;border-radius:5px;margin-top:4px;display:inline-block}
+.meas-diff.up{color:#4caf50;background:rgba(76,175,80,.12)}
+.meas-diff.down{color:#e53935;background:rgba(229,57,53,.12)}
+.meas-empty{text-align:center;padding:32px 16px;color:var(--wdim);font-size:13px}
+
+/* HISTORY */
+.meas-history-list{display:flex;flex-direction:column;gap:10px}
+.meas-hist-card{background:var(--d2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.meas-hist-date{font-family:var(--fd);font-size:12px;color:var(--gold);margin-bottom:8px;letter-spacing:1px}
+.meas-hist-fields{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.hist-meas-item{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+.hist-meas-item:last-child{border-bottom:none}
+
+/* PHOTOS GRID */
+.photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.photo-c{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:var(--d3);border:1px solid var(--border)}
+.photo-c img{width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.photo-c:active img{transform:scale(0.97)}
+.photo-date{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:9px;padding:4px 6px;text-align:center;font-family:var(--fu)}
+.photo-add{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28px;border-style:dashed;border-width:2px}
+.photos-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+
+/* MODAL medidas scroll */
+.meas-modal-card{max-height:85vh;overflow-y:auto}

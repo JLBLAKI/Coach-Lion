@@ -850,7 +850,7 @@ const App={
     const bioReg=Bio.isRegistered(),bioAvail=await Bio.isAvailable();
     $('p-settings').innerHTML=[
       {i:'⚖️',l:'Registrar peso de hoy',f:'App.logWeight()'},
-      {i:'📐',l:'Medidas corporales',f:'App.openMeasurements()'},
+
       bioAvail&&!bioReg?{i:'👁️',l:'Activar Face ID / Huella',f:'App.saveBiometric()'}:null,
       bioAvail&&bioReg?{i:'🔓',l:'Desactivar Face ID / Huella',f:'App.removeBiometric()'}:null,
       {i:'👁️',l:u.privacy_leaderboard!==false?'Ocultar del ranking':'Mostrar en el ranking',f:'App.togglePrivacy()'},
@@ -904,22 +904,35 @@ const App={
   },
 
   // ── MEDIDAS CORPORALES ──
-  openMeasurements(){
+  openMeasurements(){this.openMeasurementsForm();},
+  openMeasurementsForm(){
     const m=S.user?.body_measurements||{};
-    $('m-chest').value=m.chest||'';$('m-waist').value=m.waist||'';
-    $('m-hip').value=m.hip||'';$('m-arm').value=m.arm||'';$('m-leg').value=m.leg||'';
+    const fields={'arm-r':'arm_r','arm-r-flex':'arm_r_flex','arm-l':'arm_l','arm-l-flex':'arm_l_flex','leg-r':'leg_r','leg-l':'leg_l','torso':'torso','chest':'chest','abdomen':'abdomen','cadera':'cadera'};
+    Object.entries(fields).forEach(([id,key])=>{const el=$('m-'+id);if(el)el.value=m[key]||'';});
     this.openModal('modal-measurements');
   },
 
   async saveMeasurements(){
     if(!S.user.body_measurements)S.user.body_measurements={};
-    const fields=['chest','waist','hip','arm','leg'];
-    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f]=val;});
-    // Save history
-    if(!S.user.body_measurements.history)S.user.body_measurements.history=[];
-    S.user.body_measurements.history.push({date:new Date().toISOString().split('T')[0],...Object.fromEntries(fields.map(f=>[f,S.user.body_measurements[f]||null]))});
-    S.user.body_measurements.history=S.user.body_measurements.history.slice(-30);
-    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas guardadas');
+    const m=S.user.body_measurements;
+    const fields={'arm-r':'arm_r','arm-r-flex':'arm_r_flex','arm-l':'arm_l','arm-l-flex':'arm_l_flex','leg-r':'leg_r','leg-l':'leg_l','torso':'torso','chest':'chest','abdomen':'abdomen','cadera':'cadera'};
+    let changed=false;
+    Object.entries(fields).forEach(([id,key])=>{
+      const el=$('m-'+id);
+      if(el&&el.value!==''){const val=parseFloat(el.value);if(!isNaN(val)&&val>0){m[key]=val;changed=true;}}
+    });
+    if(!changed)return toast('Ingresa al menos una medida');
+    if(!m.history)m.history=[];
+    const entry={date:new Date().toISOString().split('T')[0]};
+    Object.values(fields).forEach(k=>{if(m[k])entry[k]=m[k];});
+    const todayIdx=m.history.findIndex(h=>h.date===entry.date);
+    if(todayIdx>=0)m.history[todayIdx]={...m.history[todayIdx],...entry};
+    else m.history.push(entry);
+    m.history=m.history.slice(-60);
+    await DB.saveUser(S.user);
+    this.closeModal('modal-measurements');
+    toast('✅ Medidas guardadas');
+    if(document.querySelector('#page-body.active'))await this.renderBodyPage();
   },
 
   // ── MUSCLE HEATMAP ──
@@ -975,6 +988,7 @@ const App={
     if(page==='recipes')await this.renderRecipes();
     if(page==='chat')await this.renderChat();
     if(page==='ai-coach'){this.renderAICoachChat();}
+    if(page==='body'){await this.renderBodyPage();}
     if(page==='history')await this.renderHistory(0);
   },
 
@@ -1462,6 +1476,70 @@ const App={
       const rm=r[ex.track+'_1rm'];
       return`<div class="rec-card"><div class="rec-ico">${ex.emoji}</div><div class="rec-ex">${ex.name.toUpperCase()}</div><div class="rec-val">${r[ex.track]}</div><div class="rec-unit">kg · Récord</div>${rm?`<div style="font-size:10px;color:var(--gold);margin-top:2px">1RM est: ${rm}kg</div>`:''}</div>`;
     }).join('');
+  },
+
+  // ── BODY PAGE ──
+  bodyTab(tab,btn){
+    document.querySelectorAll('.body-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.body-tab-content').forEach(c=>c.classList.add('hidden'));
+    btn.classList.add('active');
+    const el=$('body-tab-'+tab);if(el)el.classList.remove('hidden');
+    if(tab==='fotos')this.renderPhotos();
+    if(tab==='historial')this.renderMeasurementsHistory();
+    if(tab==='medidas')this.renderCurrentMeasurements();
+  },
+
+  async renderBodyPage(){
+    this.renderCurrentMeasurements();
+    document.querySelectorAll('.body-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
+    document.querySelectorAll('.body-tab-content').forEach((c,i)=>c.classList.toggle('hidden',i!==0));
+  },
+
+  renderCurrentMeasurements(){
+    const m=S.user?.body_measurements||{};
+    const hist=m.history||[];
+    const last=hist[hist.length-1];
+    const dateEl=$('meas-last-date');
+    if(dateEl)dateEl.textContent=last?('Última medición: '+new Date(last.date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})):'Sin mediciones registradas aún';
+    const c=$('meas-current-vals');if(!c)return;
+    const LABELS={arm_r:'💪 B.Der reposo',arm_r_flex:'💪 B.Der flexión',arm_l:'💪 B.Izq reposo',arm_l_flex:'💪 B.Izq flexión',leg_r:'🦵 Pierna Der',leg_l:'🦵 Pierna Izq',torso:'🫁 Torso',chest:'🫁 Pecho',abdomen:'🎯 Abdomen',cadera:'🍑 Caderas'};
+    const prev=hist.length>=2?hist[hist.length-2]:null;
+    const hasAny=Object.keys(LABELS).some(k=>m[k]);
+    if(!hasAny){
+      c.innerHTML='<div class="meas-empty"><div style="font-size:40px;margin-bottom:10px">📐</div><p>No tienes medidas registradas</p><p style="font-size:11px;color:var(--wdim);margin-top:6px">Toca REGISTRAR HOY para comenzar</p></div>';
+      return;
+    }
+    c.innerHTML=Object.entries(LABELS).map(([k,label])=>{
+      const val=m[k];if(!val)return'';
+      const prevVal=prev?.[k];
+      const diff=prevVal?(val-prevVal).toFixed(1):null;
+      const diffHtml=diff?('<span class="meas-diff '+(parseFloat(diff)>=0?'up':'down')+'">'+(parseFloat(diff)>0?'↑':'↓')+Math.abs(diff)+'cm</span>'):'';
+      return'<div class="meas-card"><div class="meas-card-label">'+label+'</div><div class="meas-card-val">'+val+'<span class="meas-card-unit">cm</span></div>'+diffHtml+'</div>';
+    }).join('');
+  },
+
+  renderMeasurementsHistory(){
+    const hist=(S.user?.body_measurements?.history||[]).slice().reverse();
+    const c=$('meas-history-list');if(!c)return;
+    if(!hist.length){c.innerHTML='<div class="meas-empty">Sin historial de medidas aún</div>';return;}
+    const LABELS={arm_r:'B.Der↓',arm_r_flex:'B.Der↑',arm_l:'B.Izq↓',arm_l_flex:'B.Izq↑',leg_r:'P.Der',leg_l:'P.Izq',torso:'Torso',chest:'Pecho',abdomen:'Abd',cadera:'Cadera'};
+    c.innerHTML=hist.map((h,i)=>{
+      const prev=hist[i+1];
+      const fields=Object.entries(LABELS).filter(([k])=>h[k]).map(([k,l])=>{
+        const diff=prev?.[k]?((h[k]-prev[k]).toFixed(1)):null;
+        const col=diff?(parseFloat(diff)>0?'#4caf50':'#e53935'):'var(--wdim)';
+        return'<div class="hist-meas-item"><span>'+l+'</span><span style="color:'+col+'">'+h[k]+'cm'+(diff?' ('+(parseFloat(diff)>0?'+':'')+diff+')':'')+'</span></div>';
+      }).join('');
+      return'<div class="meas-hist-card"><div class="meas-hist-date">'+new Date(h.date+'T12:00:00').toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})+'</div><div class="meas-hist-fields">'+fields+'</div></div>';
+    }).join('');
+  },
+
+  viewPhoto(src){
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:pointer';
+    overlay.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain"><button style="margin-top:16px;background:var(--d3);border:1px solid var(--border);color:var(--white);padding:10px 28px;border-radius:10px;font-family:var(--fu);font-size:13px;cursor:pointer">✕ CERRAR</button>';
+    overlay.querySelector('button').onclick=()=>overlay.remove();
+    document.body.appendChild(overlay);
   },
 
   // ── PHOTOS ──
