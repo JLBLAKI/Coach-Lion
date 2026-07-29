@@ -1478,7 +1478,7 @@ const App={
     }).join('');
   },
 
-  // ── BODY PAGE ──
+  // ── PHOTOS ──
   bodyTab(tab,btn){
     document.querySelectorAll('.body-tab').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.body-tab-content').forEach(c=>c.classList.add('hidden'));
@@ -1489,30 +1489,19 @@ const App={
     if(tab==='medidas')this.renderCurrentMeasurements();
   },
 
-  async renderBodyPage(){
-    this.renderCurrentMeasurements();
-    document.querySelectorAll('.body-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
-    document.querySelectorAll('.body-tab-content').forEach((c,i)=>c.classList.toggle('hidden',i!==0));
-  },
-
   renderCurrentMeasurements(){
     const m=S.user?.body_measurements||{};
-    const hist=m.history||[];
-    const last=hist[hist.length-1];
+    const hist=m.history||[];const last=hist[hist.length-1];
     const dateEl=$('meas-last-date');
-    if(dateEl)dateEl.textContent=last?('Última medición: '+new Date(last.date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})):'Sin mediciones registradas aún';
+    if(dateEl)dateEl.textContent=last?('Última: '+new Date(last.date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})):'Sin mediciones aún';
     const c=$('meas-current-vals');if(!c)return;
-    const LABELS={arm_r:'💪 B.Der reposo',arm_r_flex:'💪 B.Der flexión',arm_l:'💪 B.Izq reposo',arm_l_flex:'💪 B.Izq flexión',leg_r:'🦵 Pierna Der',leg_l:'🦵 Pierna Izq',torso:'🫁 Torso',chest:'🫁 Pecho',abdomen:'🎯 Abdomen',cadera:'🍑 Caderas'};
+    const LABELS={arm_r:'💪 B.Der reposo',arm_r_flex:'💪 B.Der flex.',arm_l:'💪 B.Izq reposo',arm_l_flex:'💪 B.Izq flex.',leg_r:'🦵 Pierna Der',leg_l:'🦵 Pierna Izq',torso:'🫁 Torso',chest:'🫁 Pecho',abdomen:'🎯 Abdomen',cadera:'🍑 Caderas'};
     const prev=hist.length>=2?hist[hist.length-2]:null;
     const hasAny=Object.keys(LABELS).some(k=>m[k]);
-    if(!hasAny){
-      c.innerHTML='<div class="meas-empty"><div style="font-size:40px;margin-bottom:10px">📐</div><p>No tienes medidas registradas</p><p style="font-size:11px;color:var(--wdim);margin-top:6px">Toca REGISTRAR HOY para comenzar</p></div>';
-      return;
-    }
+    if(!hasAny){c.innerHTML='<div class="meas-empty"><div style="font-size:40px;margin-bottom:10px">📐</div><p>No tienes medidas registradas</p><p style="font-size:11px;color:var(--wdim);margin-top:6px">Toca REGISTRAR HOY para comenzar</p></div>';return;}
     c.innerHTML=Object.entries(LABELS).map(([k,label])=>{
       const val=m[k];if(!val)return'';
-      const prevVal=prev?.[k];
-      const diff=prevVal?(val-prevVal).toFixed(1):null;
+      const prevVal=prev?.[k];const diff=prevVal?(val-prevVal).toFixed(1):null;
       const diffHtml=diff?('<span class="meas-diff '+(parseFloat(diff)>=0?'up':'down')+'">'+(parseFloat(diff)>0?'↑':'↓')+Math.abs(diff)+'cm</span>'):'';
       return'<div class="meas-card"><div class="meas-card-label">'+label+'</div><div class="meas-card-val">'+val+'<span class="meas-card-unit">cm</span></div>'+diffHtml+'</div>';
     }).join('');
@@ -1521,7 +1510,7 @@ const App={
   renderMeasurementsHistory(){
     const hist=(S.user?.body_measurements?.history||[]).slice().reverse();
     const c=$('meas-history-list');if(!c)return;
-    if(!hist.length){c.innerHTML='<div class="meas-empty">Sin historial de medidas aún</div>';return;}
+    if(!hist.length){c.innerHTML='<div class="meas-empty">Sin historial aún</div>';return;}
     const LABELS={arm_r:'B.Der↓',arm_r_flex:'B.Der↑',arm_l:'B.Izq↓',arm_l_flex:'B.Izq↑',leg_r:'P.Der',leg_l:'P.Izq',torso:'Torso',chest:'Pecho',abdomen:'Abd',cadera:'Cadera'};
     c.innerHTML=hist.map((h,i)=>{
       const prev=hist[i+1];
@@ -1535,14 +1524,12 @@ const App={
   },
 
   viewPhoto(src){
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:pointer';
-    overlay.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain"><button style="margin-top:16px;background:var(--d3);border:1px solid var(--border);color:var(--white);padding:10px 28px;border-radius:10px;font-family:var(--fu);font-size:13px;cursor:pointer">✕ CERRAR</button>';
-    overlay.querySelector('button').onclick=()=>overlay.remove();
-    document.body.appendChild(overlay);
+    const o=document.createElement('div');
+    o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px';
+    o.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain"><button onclick="this.parentElement.remove()" style="margin-top:16px;background:var(--d3);border:1px solid var(--border);color:var(--white);padding:10px 28px;border-radius:10px;font-family:var(--fu);font-size:13px;cursor:pointer">✕ CERRAR</button>';
+    document.body.appendChild(o);
   },
 
-  // ── PHOTOS ──
   addPhoto(){
     const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='user';
     inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async ev=>{const compressed=await compressImg(ev.target.result,600,0.75);const url=await DB.uploadPhoto(compressed,S.user.id);const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]');ph.push({date:new Date().toISOString(),src:url});localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph.slice(-20)));await this.renderPhotos();toast('📸 Foto guardada');};rd.readAsDataURL(f);};inp.click();

@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="theme-color" content="#08080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lion">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="shortcut icon" href="favicon-32.png">
 <title>COACH LION 🦁</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
@@ -279,7 +285,6 @@
         </div>
       </div>
     </div>
-
     <!-- ACHIEVEMENTS -->
     <div id="page-achievements" class="page">
       <div class="scroll">
@@ -723,7 +728,6 @@
   <div class="modal-card">
     <div class="modal-head"><h3>📐 REGISTRAR MEDIDAS</h3><button onclick="App.closeModal('modal-measurements')">✕</button></div>
     <p style="font-size:11px;color:var(--wdim);margin-bottom:14px">Ingresa en cm. Deja vacío lo que no midas hoy.</p>
-
     <div class="meas-section"><div class="meas-section-title">💪 BRAZOS</div>
       <div class="meas-row-2">
         <div class="meas-field"><label>Der. reposo</label><div class="mf-wrap"><input type="number" id="m-arm-r" placeholder="0" step="0.5"><span>cm</span></div></div>
@@ -734,14 +738,12 @@
         <div class="meas-field"><label>Izq. flexión</label><div class="mf-wrap"><input type="number" id="m-arm-l-flex" placeholder="0" step="0.5"><span>cm</span></div></div>
       </div>
     </div>
-
     <div class="meas-section"><div class="meas-section-title">🦵 PIERNAS</div>
       <div class="meas-row-2">
         <div class="meas-field"><label>Pierna derecha</label><div class="mf-wrap"><input type="number" id="m-leg-r" placeholder="0" step="0.5"><span>cm</span></div></div>
         <div class="meas-field"><label>Pierna izquierda</label><div class="mf-wrap"><input type="number" id="m-leg-l" placeholder="0" step="0.5"><span>cm</span></div></div>
       </div>
     </div>
-
     <div class="meas-section"><div class="meas-section-title">🫁 TORSO</div>
       <div class="meas-row-2">
         <div class="meas-field"><label>Torso</label><div class="mf-wrap"><input type="number" id="m-torso" placeholder="0" step="0.5"><span>cm</span></div></div>
@@ -752,7 +754,6 @@
         <div class="meas-field"><label>Caderas</label><div class="mf-wrap"><input type="number" id="m-cadera" placeholder="0" step="0.5"><span>cm</span></div></div>
       </div>
     </div>
-
     <button class="btn-gold" style="margin-top:6px" onclick="App.saveMeasurements()">💾 GUARDAR MEDIDAS</button>
   </div>
 </div>
