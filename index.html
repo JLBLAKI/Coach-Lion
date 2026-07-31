@@ -5,14 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <meta name="theme-color" content="#08080f">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Coach Lion">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="shortcut icon" href="favicon-32.png">
 <title>COACH LION 🦁</title>
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
@@ -256,35 +250,6 @@
       </div>
     </div>
 
-    <!-- CUERPO -->
-    <div id="page-body" class="page">
-      <div class="scroll">
-        <h2 class="page-title">💪 MI CUERPO</h2>
-        <p class="page-sub">Registra y sigue tu transformación física</p>
-        <div class="body-tabs">
-          <button class="body-tab active" onclick="App.bodyTab('medidas',this)">📐 Medidas</button>
-          <button class="body-tab" onclick="App.bodyTab('fotos',this)">📸 Fotos</button>
-          <button class="body-tab" onclick="App.bodyTab('historial',this)">📊 Historial</button>
-        </div>
-        <div id="body-tab-medidas" class="body-tab-content">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-            <div id="meas-last-date" style="font-size:11px;color:var(--wdim)">Sin mediciones aún</div>
-            <button class="btn-gold" onclick="App.openMeasurementsForm()">✏️ REGISTRAR HOY</button>
-          </div>
-          <div id="meas-current-vals" class="meas-current-grid"></div>
-        </div>
-        <div id="body-tab-fotos" class="body-tab-content hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-            <p style="font-size:12px;color:var(--wdim);margin:0">Documenta tu transformación visual</p>
-            <button class="btn-gold" onclick="App.addPhoto()">📷 AÑADIR FOTO</button>
-          </div>
-          <div id="photos" class="photos-grid"></div>
-        </div>
-        <div id="body-tab-historial" class="body-tab-content hidden">
-          <div id="meas-history-list" class="meas-history-list"></div>
-        </div>
-      </div>
-    </div>
     <!-- ACHIEVEMENTS -->
     <div id="page-achievements" class="page">
       <div class="scroll">
@@ -389,6 +354,16 @@
 
         <!-- Atletas -->
         <div id="ct-athletes" class="ctab-body">
+          <div class="athlete-filters">
+            <input id="athlete-search" type="text" placeholder="🔍 Buscar atleta..." oninput="App.renderCoach()">
+            <select id="athlete-goal-filter" onchange="App.renderCoach()">
+              <option value="all">Todos</option>
+              <option value="strength">⚡ Fuerza</option>
+              <option value="hypertrophy">💪 Masa</option>
+              <option value="weightloss">🔥 Definir</option>
+              <option value="endurance">🏃 Resistencia</option>
+            </select>
+          </div>
           <div id="athletes-list" class="athletes-list"></div>
         </div>
 
@@ -441,10 +416,11 @@
   <nav class="bnav">
     <button class="nb active" onclick="App.goTo('home')" data-p="home"><span>🏠</span><span>INICIO</span></button>
     <button class="nb" onclick="App.goTo('workout')" data-p="workout"><span>⚡</span><span>ENTRENA</span></button>
+    <button class="nb" onclick="App.goTo('routines')" data-p="routines"><span>📋</span><span>RUTINAS</span></button>
+    <button class="nb" onclick="App.goTo('recipes')" data-p="recipes"><span>🥗</span><span>RECETAS</span></button>
     <button class="nb" onclick="App.goTo('progress')" data-p="progress"><span>📸</span><span>PROGRESO</span></button>
-    <button class="nb" onclick="App.goTo('body')" data-p="body"><span>📐</span><span>CUERPO</span></button>
     <button class="nb" onclick="App.goTo('ai-coach')" data-p="ai-coach"><span>🤖</span><span>IA</span></button>
-    <button class="nb" onclick="App.goTo('routines')" data-p="routines"><span>📋</span><span>MÁS</span></button>
+    <button class="nb" onclick="App.goTo('achievements')" data-p="achievements"><span>🏆</span><span>LOGROS</span></button>
   </nav>
 </div>
 
@@ -726,35 +702,16 @@
 <!-- MODAL MEDIDAS CORPORALES -->
 <div id="modal-measurements" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-head"><h3>📐 REGISTRAR MEDIDAS</h3><button onclick="App.closeModal('modal-measurements')">✕</button></div>
-    <p style="font-size:11px;color:var(--wdim);margin-bottom:14px">Ingresa en cm. Deja vacío lo que no midas hoy.</p>
-    <div class="meas-section"><div class="meas-section-title">💪 BRAZOS</div>
-      <div class="meas-row-2">
-        <div class="meas-field"><label>Der. reposo</label><div class="mf-wrap"><input type="number" id="m-arm-r" placeholder="0" step="0.5"><span>cm</span></div></div>
-        <div class="meas-field"><label>Der. flexión</label><div class="mf-wrap"><input type="number" id="m-arm-r-flex" placeholder="0" step="0.5"><span>cm</span></div></div>
-      </div>
-      <div class="meas-row-2">
-        <div class="meas-field"><label>Izq. reposo</label><div class="mf-wrap"><input type="number" id="m-arm-l" placeholder="0" step="0.5"><span>cm</span></div></div>
-        <div class="meas-field"><label>Izq. flexión</label><div class="mf-wrap"><input type="number" id="m-arm-l-flex" placeholder="0" step="0.5"><span>cm</span></div></div>
-      </div>
+    <div class="modal-head"><h3>📐 MEDIDAS CORPORALES</h3><button onclick="App.closeModal('modal-measurements')">✕</button></div>
+    <p style="font-size:11px;color:var(--wdim);margin-bottom:12px">Registra tus medidas en centímetros</p>
+    <div class="ex-fields-grid">
+      <div class="ex-field-item"><label>💪 Brazo (cm)</label><input type="number" id="m-arm" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🫁 Pecho (cm)</label><input type="number" id="m-chest" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🎯 Cintura (cm)</label><input type="number" id="m-waist" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🍑 Cadera (cm)</label><input type="number" id="m-hip" placeholder="cm" step="0.5"></div>
+      <div class="ex-field-item"><label>🦵 Muslo (cm)</label><input type="number" id="m-leg" placeholder="cm" step="0.5"></div>
     </div>
-    <div class="meas-section"><div class="meas-section-title">🦵 PIERNAS</div>
-      <div class="meas-row-2">
-        <div class="meas-field"><label>Pierna derecha</label><div class="mf-wrap"><input type="number" id="m-leg-r" placeholder="0" step="0.5"><span>cm</span></div></div>
-        <div class="meas-field"><label>Pierna izquierda</label><div class="mf-wrap"><input type="number" id="m-leg-l" placeholder="0" step="0.5"><span>cm</span></div></div>
-      </div>
-    </div>
-    <div class="meas-section"><div class="meas-section-title">🫁 TORSO</div>
-      <div class="meas-row-2">
-        <div class="meas-field"><label>Torso</label><div class="mf-wrap"><input type="number" id="m-torso" placeholder="0" step="0.5"><span>cm</span></div></div>
-        <div class="meas-field"><label>Pecho</label><div class="mf-wrap"><input type="number" id="m-chest" placeholder="0" step="0.5"><span>cm</span></div></div>
-      </div>
-      <div class="meas-row-2">
-        <div class="meas-field"><label>Abdomen</label><div class="mf-wrap"><input type="number" id="m-abdomen" placeholder="0" step="0.5"><span>cm</span></div></div>
-        <div class="meas-field"><label>Caderas</label><div class="mf-wrap"><input type="number" id="m-cadera" placeholder="0" step="0.5"><span>cm</span></div></div>
-      </div>
-    </div>
-    <button class="btn-gold" style="margin-top:6px" onclick="App.saveMeasurements()">💾 GUARDAR MEDIDAS</button>
+    <button class="btn-gold" onclick="App.saveMeasurements()">💾 GUARDAR MEDIDAS</button>
   </div>
 </div>
 

@@ -486,19 +486,28 @@ async function hashPw(pw){const d=new TextEncoder().encode(pw+'cl_salt_2024');co
 async function verifyPw(pw,hash){return(await hashPw(pw))===hash;}
 
 // ── IMAGE COMPRESSION ──
-function compressImg(dataUrl,maxW=600,q=0.75){
-  return new Promise(res=>{
+function compressImg(dataUrl,maxW=800,q=0.72){
+  return new Promise((res,rej)=>{
     const img=new Image();
     img.onload=()=>{
-      const canvas=document.createElement('canvas');
-      const r=Math.min(maxW/img.width,maxW/img.height,1);
-      canvas.width=Math.round(img.width*r);canvas.height=Math.round(img.height*r);
-      const ctx=canvas.getContext('2d');
-      if(!ctx.roundRect)ctx.roundRect=function(x,y,w,h){ctx.rect(x,y,w,h);};
-      ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      res(canvas.toDataURL('image/jpeg',q));
+      try{
+        const canvas=document.createElement('canvas');
+        // Maintain aspect ratio, cap at maxW
+        const ratio=Math.min(maxW/img.width,maxW/img.height,1);
+        canvas.width=Math.round(img.width*ratio);
+        canvas.height=Math.round(img.height*ratio);
+        const ctx=canvas.getContext('2d');
+        ctx.imageSmoothingEnabled=true;
+        ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        // Try WebP first, fallback to JPEG
+        let out=canvas.toDataURL('image/webp',q);
+        if(out.length<100||out==='data:,')out=canvas.toDataURL('image/jpeg',q);
+        res(out);
+      }catch(e){res(dataUrl);}
     };
-    img.onerror=()=>res(dataUrl);img.src=dataUrl;
+    img.onerror=()=>res(dataUrl);
+    img.src=dataUrl;
   });
 }
 
@@ -850,7 +859,7 @@ const App={
     const bioReg=Bio.isRegistered(),bioAvail=await Bio.isAvailable();
     $('p-settings').innerHTML=[
       {i:'⚖️',l:'Registrar peso de hoy',f:'App.logWeight()'},
-
+      {i:'📐',l:'Medidas corporales',f:'App.openMeasurements()'},
       bioAvail&&!bioReg?{i:'👁️',l:'Activar Face ID / Huella',f:'App.saveBiometric()'}:null,
       bioAvail&&bioReg?{i:'🔓',l:'Desactivar Face ID / Huella',f:'App.removeBiometric()'}:null,
       {i:'👁️',l:u.privacy_leaderboard!==false?'Ocultar del ranking':'Mostrar en el ranking',f:'App.togglePrivacy()'},
@@ -904,35 +913,22 @@ const App={
   },
 
   // ── MEDIDAS CORPORALES ──
-  openMeasurements(){this.openMeasurementsForm();},
-  openMeasurementsForm(){
+  openMeasurements(){
     const m=S.user?.body_measurements||{};
-    const fields={'arm-r':'arm_r','arm-r-flex':'arm_r_flex','arm-l':'arm_l','arm-l-flex':'arm_l_flex','leg-r':'leg_r','leg-l':'leg_l','torso':'torso','chest':'chest','abdomen':'abdomen','cadera':'cadera'};
-    Object.entries(fields).forEach(([id,key])=>{const el=$('m-'+id);if(el)el.value=m[key]||'';});
+    $('m-chest').value=m.chest||'';$('m-waist').value=m.waist||'';
+    $('m-hip').value=m.hip||'';$('m-arm').value=m.arm||'';$('m-leg').value=m.leg||'';
     this.openModal('modal-measurements');
   },
 
   async saveMeasurements(){
     if(!S.user.body_measurements)S.user.body_measurements={};
-    const m=S.user.body_measurements;
-    const fields={'arm-r':'arm_r','arm-r-flex':'arm_r_flex','arm-l':'arm_l','arm-l-flex':'arm_l_flex','leg-r':'leg_r','leg-l':'leg_l','torso':'torso','chest':'chest','abdomen':'abdomen','cadera':'cadera'};
-    let changed=false;
-    Object.entries(fields).forEach(([id,key])=>{
-      const el=$('m-'+id);
-      if(el&&el.value!==''){const val=parseFloat(el.value);if(!isNaN(val)&&val>0){m[key]=val;changed=true;}}
-    });
-    if(!changed)return toast('Ingresa al menos una medida');
-    if(!m.history)m.history=[];
-    const entry={date:new Date().toISOString().split('T')[0]};
-    Object.values(fields).forEach(k=>{if(m[k])entry[k]=m[k];});
-    const todayIdx=m.history.findIndex(h=>h.date===entry.date);
-    if(todayIdx>=0)m.history[todayIdx]={...m.history[todayIdx],...entry};
-    else m.history.push(entry);
-    m.history=m.history.slice(-60);
-    await DB.saveUser(S.user);
-    this.closeModal('modal-measurements');
-    toast('✅ Medidas guardadas');
-    if(document.querySelector('#page-body.active'))await this.renderBodyPage();
+    const fields=['chest','waist','hip','arm','leg'];
+    fields.forEach(f=>{const val=parseFloat($(`m-${f}`)?.value);if(val)S.user.body_measurements[f]=val;});
+    // Save history
+    if(!S.user.body_measurements.history)S.user.body_measurements.history=[];
+    S.user.body_measurements.history.push({date:new Date().toISOString().split('T')[0],...Object.fromEntries(fields.map(f=>[f,S.user.body_measurements[f]||null]))});
+    S.user.body_measurements.history=S.user.body_measurements.history.slice(-30);
+    await DB.saveUser(S.user);this.closeModal('modal-measurements');toast('📐 Medidas guardadas');
   },
 
   // ── MUSCLE HEATMAP ──
@@ -988,7 +984,6 @@ const App={
     if(page==='recipes')await this.renderRecipes();
     if(page==='chat')await this.renderChat();
     if(page==='ai-coach'){this.renderAICoachChat();}
-    if(page==='body'){await this.renderBodyPage();}
     if(page==='history')await this.renderHistory(0);
   },
 
@@ -1479,64 +1474,91 @@ const App={
   },
 
   // ── PHOTOS ──
-  bodyTab(tab,btn){
-    document.querySelectorAll('.body-tab').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.body-tab-content').forEach(c=>c.classList.add('hidden'));
-    btn.classList.add('active');
-    const el=$('body-tab-'+tab);if(el)el.classList.remove('hidden');
-    if(tab==='fotos')this.renderPhotos();
-    if(tab==='historial')this.renderMeasurementsHistory();
-    if(tab==='medidas')this.renderCurrentMeasurements();
-  },
-
-  renderCurrentMeasurements(){
-    const m=S.user?.body_measurements||{};
-    const hist=m.history||[];const last=hist[hist.length-1];
-    const dateEl=$('meas-last-date');
-    if(dateEl)dateEl.textContent=last?('Última: '+new Date(last.date+'T12:00:00').toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})):'Sin mediciones aún';
-    const c=$('meas-current-vals');if(!c)return;
-    const LABELS={arm_r:'💪 B.Der reposo',arm_r_flex:'💪 B.Der flex.',arm_l:'💪 B.Izq reposo',arm_l_flex:'💪 B.Izq flex.',leg_r:'🦵 Pierna Der',leg_l:'🦵 Pierna Izq',torso:'🫁 Torso',chest:'🫁 Pecho',abdomen:'🎯 Abdomen',cadera:'🍑 Caderas'};
-    const prev=hist.length>=2?hist[hist.length-2]:null;
-    const hasAny=Object.keys(LABELS).some(k=>m[k]);
-    if(!hasAny){c.innerHTML='<div class="meas-empty"><div style="font-size:40px;margin-bottom:10px">📐</div><p>No tienes medidas registradas</p><p style="font-size:11px;color:var(--wdim);margin-top:6px">Toca REGISTRAR HOY para comenzar</p></div>';return;}
-    c.innerHTML=Object.entries(LABELS).map(([k,label])=>{
-      const val=m[k];if(!val)return'';
-      const prevVal=prev?.[k];const diff=prevVal?(val-prevVal).toFixed(1):null;
-      const diffHtml=diff?('<span class="meas-diff '+(parseFloat(diff)>=0?'up':'down')+'">'+(parseFloat(diff)>0?'↑':'↓')+Math.abs(diff)+'cm</span>'):'';
-      return'<div class="meas-card"><div class="meas-card-label">'+label+'</div><div class="meas-card-val">'+val+'<span class="meas-card-unit">cm</span></div>'+diffHtml+'</div>';
-    }).join('');
-  },
-
-  renderMeasurementsHistory(){
-    const hist=(S.user?.body_measurements?.history||[]).slice().reverse();
-    const c=$('meas-history-list');if(!c)return;
-    if(!hist.length){c.innerHTML='<div class="meas-empty">Sin historial aún</div>';return;}
-    const LABELS={arm_r:'B.Der↓',arm_r_flex:'B.Der↑',arm_l:'B.Izq↓',arm_l_flex:'B.Izq↑',leg_r:'P.Der',leg_l:'P.Izq',torso:'Torso',chest:'Pecho',abdomen:'Abd',cadera:'Cadera'};
-    c.innerHTML=hist.map((h,i)=>{
-      const prev=hist[i+1];
-      const fields=Object.entries(LABELS).filter(([k])=>h[k]).map(([k,l])=>{
-        const diff=prev?.[k]?((h[k]-prev[k]).toFixed(1)):null;
-        const col=diff?(parseFloat(diff)>0?'#4caf50':'#e53935'):'var(--wdim)';
-        return'<div class="hist-meas-item"><span>'+l+'</span><span style="color:'+col+'">'+h[k]+'cm'+(diff?' ('+(parseFloat(diff)>0?'+':'')+diff+')':'')+'</span></div>';
-      }).join('');
-      return'<div class="meas-hist-card"><div class="meas-hist-date">'+new Date(h.date+'T12:00:00').toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})+'</div><div class="meas-hist-fields">'+fields+'</div></div>';
-    }).join('');
-  },
-
-  viewPhoto(src){
-    const o=document.createElement('div');
-    o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px';
-    o.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain"><button onclick="this.parentElement.remove()" style="margin-top:16px;background:var(--d3);border:1px solid var(--border);color:var(--white);padding:10px 28px;border-radius:10px;font-family:var(--fu);font-size:13px;cursor:pointer">✕ CERRAR</button>';
-    document.body.appendChild(o);
-  },
-
   addPhoto(){
-    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='user';
-    inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async ev=>{const compressed=await compressImg(ev.target.result,600,0.75);const url=await DB.uploadPhoto(compressed,S.user.id);const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]');ph.push({date:new Date().toISOString(),src:url});localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph.slice(-20)));await this.renderPhotos();toast('📸 Foto guardada');};rd.readAsDataURL(f);};inp.click();
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+    inp.onchange=async e=>{
+      const f=e.target.files[0];if(!f)return;
+      // Validate size
+      if(f.size>20*1024*1024)return toast('La foto es muy grande. Máximo 20MB.');
+      toast('📸 Procesando foto...');
+      try{
+        const rd=new FileReader();
+        rd.onload=async ev=>{
+          try{
+            // Compress aggressively — max 800px, 70% quality
+            const compressed=await compressImg(ev.target.result,800,0.70);
+            // Check compressed size
+            const sizeKB=Math.round(compressed.length*0.75/1024);
+            if(sizeKB>500)toast('⚠️ Foto comprimida a '+sizeKB+'KB');
+            const url=await DB.uploadPhoto(compressed,S.user.id);
+            // Save to localStorage as fallback
+            try{
+              const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]');
+              ph.unshift({date:new Date().toISOString(),src:url});
+              localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph.slice(-20)));
+            }catch(storErr){console.warn('localStorage full:',storErr);}
+            await this.renderPhotos();
+            // Also update body tab if open
+            if(document.querySelector('#page-body.active'))await this.renderBodyPhotos();
+            toast('✅ Foto guardada correctamente');
+          }catch(err){toast('Error al guardar foto: '+err.message);}
+        };
+        rd.onerror=()=>toast('Error al leer la foto');
+        rd.readAsDataURL(f);
+      }catch(e){toast('Error: '+e.message);}
+    };
+    inp.click();
   },
   async renderPhotos(){
     const ph=await DB.getPhotos(S.user?.id);
-    $('photos').innerHTML=[...ph.slice(0,9).map(p=>`<div class="photo-c"><img src="${p.src}"><div class="photo-date">${new Date(p.date).toLocaleDateString('es',{month:'short',day:'numeric'})}</div></div>`),`<div class="photo-c" onclick="App.addPhoto()" style="border-style:dashed;cursor:pointer"><span>📷</span></div>`].join('');
+    const c=$('photos');if(!c)return;
+    if(ph.length===0){
+      c.innerHTML=`<div class="photo-empty"><div style="font-size:48px;margin-bottom:12px">📸</div><p>No hay fotos de progreso</p><p style="font-size:11px;color:var(--wdim);margin-top:4px">Toca + para agregar tu primera foto</p></div><div class="photo-c photo-add" onclick="App.addPhoto()"><span>📷</span><span class="photo-add-label">AÑADIR</span></div>`;
+      return;
+    }
+    c.innerHTML=[
+      ...ph.slice(0,12).map((p,i)=>{
+        const date=new Date(p.date).toLocaleDateString('es',{month:'short',day:'numeric'});
+        return`<div class="photo-c" onclick="App.viewPhoto('${p.src}','${date}',${i},[${ph.slice(0,12).map(x=>"'"+x.src+"'").join(',')}])"><img src="${p.src}" loading="lazy" onerror="this.parentElement.classList.add('photo-error');this.style.display='none'"><div class="photo-date">${date}</div></div>`;
+      }),
+      `<div class="photo-c photo-add" onclick="App.addPhoto()"><span>📷</span><span class="photo-add-label">AÑADIR</span></div>`
+    ].join('');
+  },
+
+  async renderBodyPhotos(){
+    await this.renderPhotos();
+  },
+
+  viewPhoto(src,date,idx,allSrcs){
+    // Full screen viewer with swipe support
+    const o=document.createElement('div');
+    o.id='photo-viewer';
+    o.style.cssText='position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;touch-action:pan-y';
+    o.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(0,0,0,.8)">
+        <button onclick="document.getElementById('photo-viewer').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">✕</button>
+        <span style="color:var(--gold);font-family:var(--fu);font-size:12px;letter-spacing:2px">${date}</span>
+        <button onclick="App.deletePhoto(${idx})" style="background:none;border:none;color:#e53935;font-size:13px;font-family:var(--fu);cursor:pointer">🗑️ ELIMINAR</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:10px">
+        <img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" id="viewer-img">
+      </div>
+      <div style="display:flex;justify-content:center;gap:6px;padding:12px;flex-wrap:wrap">
+        ${allSrcs.map((s,i)=>`<div onclick="document.getElementById('viewer-img').src='${s}'" style="width:44px;height:44px;border-radius:6px;overflow:hidden;border:2px solid ${i===idx?'var(--gold)':'transparent'};cursor:pointer;flex-shrink:0"><img src="${s}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}
+      </div>`;
+    document.body.appendChild(o);
+  },
+
+  async deletePhoto(idx){
+    if(!confirm('¿Eliminar esta foto?'))return;
+    try{
+      const ph=JSON.parse(localStorage.getItem('cl_ph_'+S.user.id)||'[]');
+      ph.splice(idx,1);
+      localStorage.setItem('cl_ph_'+S.user.id,JSON.stringify(ph));
+      document.getElementById('photo-viewer')?.remove();
+      await this.renderPhotos();
+      toast('🗑️ Foto eliminada');
+    }catch(e){toast('Error al eliminar');}
   },
 
   // ── RECIPES (lazy load) ──
@@ -1797,7 +1819,34 @@ Pregunta: ${txt}`;
   // ── COACH PANEL ──
   async renderCoach(){
     const users=await DB.getAllUsers();const c=$('athletes-list');if(!c)return;
-    c.innerHTML=users.length===0?'<div class="empty-log">No hay atletas registrados aún</div>':users.map(u=>`<div class="ath-card"><div class="ath-ico">🦁</div><div class="ath-info"><div class="ath-name">${u.name} <span style="color:var(--gold);font-size:11px">@${u.username}</span></div><div class="ath-stats">⚡ ${u.xp||0} XP · 💪 ${u.sessions||0} ses · 🔥 ${u.streak||0}d racha</div><div class="ath-goal">${GL[u.goal]||'Sin objetivo'} · ${u.weight||'?'}kg · Nv.${Math.floor((u.xp||0)/1000)+1}</div></div><button class="btn-sm" onclick="App.msgAthlete('${u.id}','${u.name}')">💬</button></div>`).join('');
+    // Search filter
+    const sq=$('athlete-search')?.value?.toLowerCase()||'';
+    const gq=$('athlete-goal-filter')?.value||'all';
+    const filtered=users.filter(u=>{
+      const matchName=!sq||u.name.toLowerCase().includes(sq)||u.username.toLowerCase().includes(sq);
+      const matchGoal=gq==='all'||u.goal===gq;
+      return matchName&&matchGoal;
+    });
+    c.innerHTML=filtered.length===0?'<div class="empty-log">No hay atletas que coincidan</div>':filtered.map(u=>{
+      const lv=Math.floor((u.xp||0)/1000)+1;
+      const lastSess=u.last_session?new Date(u.last_session).toLocaleDateString('es',{day:'numeric',month:'short'}):'Nunca';
+      return`<div class="ath-card-pro" onclick="App.viewAthlete('${u.id}')">
+        <div class="ath-avatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div class="ath-info-pro">
+          <div class="ath-name-pro">${u.name} <span class="ath-user">@${u.username}</span></div>
+          <div class="ath-goal-badge">${GL[u.goal]||'Sin objetivo'}</div>
+          <div class="ath-mini-stats">
+            <span>💪 ${u.sessions||0} ses</span>
+            <span>🔥 ${u.streak||0}d</span>
+            <span>⚡ Nv.${lv}</span>
+            <span>📅 ${lastSess}</span>
+          </div>
+        </div>
+        <div class="ath-actions">
+          <button class="btn-sm" onclick="event.stopPropagation();App.msgAthlete('${u.id}','${u.name}')">💬</button>
+        </div>
+      </div>`;
+    }).join('');
     const opts=users.map(u=>`<option value="${u.id}">${u.name} (@${u.username})</option>`).join('');
     if($('assign-user'))$('assign-user').innerHTML='<option value="">Atleta...</option>'+opts;
     if($('msg-user'))$('msg-user').innerHTML='<option value="">Atleta...</option>'+opts;
@@ -1805,6 +1854,84 @@ Pregunta: ${txt}`;
     if($('assign-routine'))$('assign-routine').innerHTML='<option value="">Rutina...</option>'+rts.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
     await this.renderCoachRoutines();await this.renderCoachChallenges();await this.renderCoachAchievements();await this.renderCoachMessages();
   },
+  async viewAthlete(uid){
+    // Get full athlete data
+    const{data:u}=await sb.from('users').select('*').eq('id',uid).single();
+    if(!u)return toast('No se pudo cargar el perfil');
+    const lv=Math.floor((u.xp||0)/1000)+1;
+    const hist=await DB.getWorkoutHistory(uid,0);
+    const allAchs=await DB.getAchs();
+    const unlockedAchs=(u.achievements||[]).map(id=>allAchs.find(a=>a.id===id)).filter(Boolean);
+    const recs=u.records||{};
+    const meas=u.body_measurements||{};
+    const weightLog=(u.weight_log||[]).slice(-5).reverse();
+    // Build modal
+    const recHtml=Object.entries(recs).filter(([k])=>!k.endsWith('_1rm')).map(([k,v])=>{
+      const ex=EX_DB.find(e=>e.track===k);
+      return ex?`<div class="ath-rec-item"><span>${ex.emoji} ${ex.name}</span><span>${v}kg</span></div>`:'';
+    }).join('');
+    const measHtml=Object.entries({arm_r:'B.Der↓',arm_r_flex:'B.Der↑',arm_l:'B.Izq↓',arm_l_flex:'B.Izq↑',leg_r:'P.Der',leg_l:'P.Izq',chest:'Pecho',abdomen:'Abd',cadera:'Cadera'}).filter(([k])=>meas[k]).map(([k,l])=>`<div class="ath-meas-item"><span>${l}</span><span>${meas[k]}cm</span></div>`).join('');
+    const achHtml=unlockedAchs.slice(-6).map(a=>`<div class="ath-ach-mini" title="${a.name}">${a.icon}</div>`).join('');
+    const weightHtml=weightLog.map(w=>`<div class="ath-weight-row"><span>${w.date}</span><span>${w.kg}kg</span></div>`).join('');
+
+    const modal=document.createElement('div');
+    modal.className='modal';modal.id='modal-athlete-view';
+    modal.innerHTML=`<div class="modal-card">
+      <div class="modal-head"><h3>👤 PERFIL ATLETA</h3><button onclick="document.getElementById('modal-athlete-view').remove()">✕</button></div>
+
+      <!-- HERO -->
+      <div class="ath-hero">
+        <div class="ath-hero-avatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div class="ath-hero-info">
+          <div class="ath-hero-name">${u.name}</div>
+          <div class="ath-hero-user">@${u.username}</div>
+          <div class="ath-hero-badge">${TITLES[Math.min(lv-1,TITLES.length-1)]}</div>
+        </div>
+        <div class="ath-hero-level">
+          <div class="ath-lv-num">${lv}</div>
+          <div class="ath-lv-label">NIVEL</div>
+        </div>
+      </div>
+
+      <!-- STATS GRID -->
+      <div class="ath-stats-grid">
+        <div class="ath-stat"><div class="ath-stat-v">${u.sessions||0}</div><div class="ath-stat-l">Sesiones</div></div>
+        <div class="ath-stat"><div class="ath-stat-v">${u.streak||0}d</div><div class="ath-stat-l">Racha</div></div>
+        <div class="ath-stat"><div class="ath-stat-v">${u.xp||0}</div><div class="ath-stat-l">XP Total</div></div>
+        <div class="ath-stat"><div class="ath-stat-v">${Math.round((u.total_volume||0)/1000)}t</div><div class="ath-stat-l">Volumen</div></div>
+      </div>
+
+      <!-- FÍSICO -->
+      <div class="ath-section"><div class="ath-section-title">📏 DATOS FÍSICOS</div>
+        <div class="ath-phys-row">
+          <div class="ath-phys-item"><div class="ath-phys-v">${u.weight||'--'}kg</div><div class="ath-phys-l">Peso</div></div>
+          <div class="ath-phys-item"><div class="ath-phys-v">${u.height||'--'}cm</div><div class="ath-phys-l">Altura</div></div>
+          <div class="ath-phys-item"><div class="ath-phys-v">${u.age||'--'}</div><div class="ath-phys-l">Edad</div></div>
+          <div class="ath-phys-item"><div class="ath-phys-v">${u.bmi||'--'}</div><div class="ath-phys-l">IMC</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--wdim);margin-top:6px">Objetivo: ${GL[u.goal]||'Sin definir'} · ${(u.days_per_week||u.days||'--')} días/semana</div>
+      </div>
+
+      ${recHtml?`<div class="ath-section"><div class="ath-section-title">🏆 RÉCORDS PERSONALES</div><div class="ath-recs">${recHtml}</div></div>`:''}
+
+      ${measHtml?`<div class="ath-section"><div class="ath-section-title">📐 MEDIDAS CORPORALES</div><div class="ath-meas-grid">${measHtml}</div></div>`:''}
+
+      ${weightHtml?`<div class="ath-section"><div class="ath-section-title">⚖️ HISTORIAL DE PESO</div><div class="ath-weight-list">${weightHtml}</div></div>`:''}
+
+      ${achHtml?`<div class="ath-section"><div class="ath-section-title">🎖️ LOGROS (${unlockedAchs.length})</div><div class="ath-achs-mini">${achHtml}</div></div>`:''}
+
+      <div class="ath-section"><div class="ath-section-title">📊 ÚLTIMAS SESIONES (${hist.length})</div>
+        ${hist.slice(0,5).map(s=>`<div class="ath-sess-row"><span>${new Date(s.created_at).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})}</span><span>${Math.round(s.total_volume||0).toLocaleString()}kg · ${pad(Math.floor((s.duration_seconds||0)/60))}m</span></div>`).join('')||'<p style="color:var(--wdim);font-size:12px">Sin sesiones aún</p>'}
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn-ghost" onclick="App.msgAthlete('${u.id}','${u.name}');document.getElementById('modal-athlete-view').remove()">💬 Enviar mensaje</button>
+        <button class="btn-ghost" onclick="document.getElementById('modal-athlete-view').remove()">✕ Cerrar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  },
+
   msgAthlete(uid,name){if($('msg-user'))$('msg-user').value=uid;this.coachTab('messages',document.querySelector('.ctab[onclick*="messages"]'));if($('msg-text'))$('msg-text').focus();toast(`💬 Enviando mensaje a ${name}`);},
   async renderCoachRoutines(){
     const rts=await DB.getRoutines();const c=$('coach-routines-list');if(!c)return;
